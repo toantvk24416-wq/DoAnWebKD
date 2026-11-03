@@ -322,3 +322,26 @@ textarea.input { height: auto; padding: 10px 14px; }
   .cart-table td { display: block; padding: 8px 0; border: 0; }
   .cart-table tr { display: block; border-bottom: 1px solid var(--c-bg-muted); padding: 12px 0; }
 }
+
+/* Khung ảnh sản phẩm dùng chung: ảnh crawl có tỷ lệ (500x500, 500x597) và màu nền (trắng, #F5F5F3)
+   khác nhau. Khung luôn vuông, ảnh nằm trọn trong khung; brightness đưa cả 2 màu nền về trắng,
+   multiply làm phần trắng hòa vào màu khung, nên không còn thấy viền nền riêng của từng ảnh. */
+.card .img, .gallery .main, .gallery .thumbs button, .cart-item .thumb, .mini-items .it .thumb,
+.concern .thumb, .story .img, .hero-product, .admin-thumb {
+  background: var(--c-bg-soft); aspect-ratio: 1; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.card .img img, .gallery .main img, .gallery .thumbs img, .cart-item .thumb img, .mini-items .it .thumb img,
+.concern .thumb img, .story .img img, .hero-product img, .admin-thumb img {
+  width: 100%; height: 100%; max-height: none; object-fit: contain;
+  filter: brightness(1.05); mix-blend-mode: multiply;
+}
+.card .img img, .gallery .main img, .concern .thumb img, .story .img img, .hero-product img { padding: 5%; }
+.mini-items .it .thumb { background: #fff; }
+.admin-thumb { width: 48px; height: 48px; }
+.story .img { aspect-ratio: auto; }
+.hero-product { position: absolute; right: 8%; top: 50%; transform: translateY(-50%); width: min(36vw, 440px); }
+.grid > *, .concerns > * { min-width: 0; } /* tên dài không làm các cột, và khung ảnh, to nhỏ khác nhau */
+.card h3 { overflow-wrap: anywhere; }
+.btn.filter-toggle { display: none; }
+@media (max-width: 760px) { .hero-product { display: none; } .btn.filter-toggle { display: inline-flex; } }
