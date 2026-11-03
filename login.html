@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="auth" id="app"></div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    UI.header("account");
+    UI.footer();
+    const { V } = UI;
+    // Chỉ cho quay lại trang nội bộ, tránh chuyển hướng ra ngoài
+    const nextRaw = UI.qs("next") || "account.html";
+    const next = /^[a-z-]+\.html(\?[\w=&%.-]*)?$/i.test(nextRaw) ? nextRaw : "account.html";
+    if (Store.currentUser()) location.replace(next);
+    const app = UI.$("#app");
+
+    function loginView() {
+      app.innerHTML = `
+        <h1>Đăng nhập</h1>
+        <p class="muted">Đăng nhập để lưu giỏ hàng, địa chỉ và theo dõi đơn hàng.</p>
+        <form id="f" novalidate>
+          <div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" autocomplete="email"></div>
+          <div class="field"><label for="pass">Mật khẩu</label><input class="input" id="pass" name="pass" type="password" autocomplete="current-password"></div>
+          <p style="text-align:right;margin:-6px 0 16px"><button type="button" class="link small" id="forgot">Quên mật khẩu?</button></p>
+          <button class="btn btn-block">Đăng nhập</button>
+        </form>
+        <p style="text-align:center" class="small">Chưa có tài khoản? <button class="link" id="to-reg">Đăng ký</button></p>`;
+      const f = UI.$("#f");
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        if (!UI.validate(f, { email: [V.required("email"), V.email], pass: [V.required("mật khẩu")] })) return;
+        const r = Store.login(f.email.value, f.pass.value);
+        if (!r.ok) { f.pass.value = ""; const fld = f.pass.closest(".field"); fld.classList.add("error"); fld.querySelector(".err").textContent = r.error; return; }
+        location.href = next;
+      };
+      UI.$("#to-reg").onclick = registerView;
+      UI.$("#forgot").onclick = () => {
+        const m = UI.modal(`<h3>Quên mật khẩu</h3><p class="muted small">Nhập email tài khoản, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.</p><form id="ff" novalidate><div class="field"><input class="input" name="email" type="email" placeholder="Email"></div><div class="modal-actions"><button class="btn">Gửi liên kết</button><button type="button" class="btn btn-outline" data-close>Đóng</button></div></form>`);
+        UI.$("#ff", m.el).onsubmit = (e) => { e.preventDefault(); if (!UI.validate(e.target, { email: [V.required("email"), V.email] })) return; m.close(); UI.toast("Nếu email đã đăng ký, liên kết đặt lại mật khẩu sẽ được gửi trong vài phút."); };
+      };
+    }
+
+    function registerView() {
+      app.innerHTML = `
+        <h1>Đăng ký</h1>
+        <p class="muted">Tạo tài khoản thành viên Davines.</p>
+        <form id="f" novalidate>
+          <div class="field"><label for="name">Họ và tên</label><input class="input" id="name" name="name" autocomplete="name"></div>
+          <div class="field"><label for="email">Email (tên đăng nhập)</label><input class="input" id="email" name="email" type="email" autocomplete="email"></div>
+          <div class="field"><label for="phone">Số điện thoại</label><input class="input" id="phone" name="phone" autocomplete="tel"></div>
+          <div class="field"><label for="pass">Mật khẩu</label><input class="input" id="pass" name="pass" type="password" autocomplete="new-password"></div>
+          <div class="field"><label for="pass2">Nhập lại mật khẩu</label><input class="input" id="pass2" name="pass2" type="password" autocomplete="new-password"></div>
+          <label class="check" style="margin-bottom:16px"><input type="checkbox" name="agree"> Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật</label>
+          <button class="btn btn-block">Tạo tài khoản</button>
+        </form>
+        <p style="text-align:center" class="small">Đã có tài khoản? <button class="link" id="to-login">Đăng nhập</button></p>`;
+      const f = UI.$("#f");
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        const ok = UI.validate(f, {
+          name: [V.required("họ tên")], email: [V.required("email"), V.email], phone: [V.required("số điện thoại"), V.phone],
+          pass: [V.required("mật khẩu"), V.password], pass2: [(v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")],
+        });
+        if (!ok) return;
+        if (!f.agree.checked) return UI.toast("Vui lòng đồng ý với điều khoản sử dụng.", "error");
+        const r = Store.register({ name: f.name.value, email: f.email.value, phone: f.phone.value, pass: f.pass.value });
+        if (!r.ok) { const fld = f[r.field].closest(".field"); fld.classList.add("error"); fld.querySelector(".err").textContent = r.error; return; }
+        location.href = next;
+      };
+      UI.$("#to-login").onclick = loginView;
+    }
+
+    UI.qs("mode") === "register" ? registerView() : loginView();
+  </script>
+</body>
+</html>

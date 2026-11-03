@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sản phẩm – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-head">
+      <div class="crumbs"><a href="index.html">Trang chủ</a> / Sản phẩm</div>
+      <h1 id="title">Tất cả sản phẩm</h1>
+      <div class="toolbar">
+        <form id="search-form" style="display:flex;gap:8px;flex:1">
+          <input class="input" name="q" id="q" placeholder="Tìm trong danh mục (2–100 ký tự)" maxlength="100">
+        </form>
+        <div style="display:flex;gap:16px;align-items:center">
+          <span class="muted small" id="count"></span>
+          <select class="input" id="sort" style="width:auto">
+            <option value="new">Sắp xếp: Mới nhất</option>
+            <option value="best">Bán chạy</option>
+            <option value="price-asc">Giá: Thấp đến cao</option>
+            <option value="price-desc">Giá: Cao đến thấp</option>
+            <option value="name">Tên A–Z</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-outline filter-toggle" id="filter-toggle" type="button">Bộ lọc</button>
+      <div class="active-filters" id="active"></div>
+    </div>
+
+    <div class="listing">
+      <aside class="filters" id="filters"></aside>
+      <section>
+        <div class="grid cols-3" id="grid"></div>
+        <div class="pager" id="pager"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    UI.header("products");
+    UI.footer();
+    const PER_PAGE = 12;
+    const all = Store.products();
+    const GROUPS = [
+      { key: "needs", label: "Nhu cầu chăm sóc tóc", values: (p) => p.needs },
+      { key: "hair", label: "Loại tóc", values: (p) => p.hair },
+      { key: "collection", label: "Dòng sản phẩm", values: (p) => [p.collection] },
+      { key: "kind", label: "Loại sản phẩm", values: (p) => [p.kind] },
+    ];
+    const PRICES = [["0-600000", "Dưới 600.000 ₫"], ["600000-1300000", "600.000 – 1.300.000 ₫"], ["1300000-99999999", "Trên 1.300.000 ₫"]];
+
+    // Trạng thái lọc đọc từ URL -> có thể chia sẻ link, nút Back hoạt động đúng
+    const params = new URLSearchParams(location.search);
+    const state = {
+      q: params.get("q") || "",
+      sort: params.get("sort") || "new",
+      page: +params.get("page") || 1,
+      price: params.getAll("price"),
+      ...Object.fromEntries(GROUPS.map((g) => [g.key, params.getAll(g.key)])),
+    };
+
+    function sync() {
+      const p = new URLSearchParams();
+      if (state.q) p.set("q", state.q);
+      if (state.sort !== "new") p.set("sort", state.sort);
+      if (state.page > 1) p.set("page", state.page);
+      [...GROUPS.map((g) => g.key), "price"].forEach((k) => state[k].forEach((v) => p.append(k, v)));
+      history.replaceState(null, "", "products.html" + (p.toString() ? "?" + p : ""));
+    }
+
+    const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").toLowerCase();
+    const sold = {};
+    Store.db.orders.filter((o) => o.status === "delivered").forEach((o) => o.items.forEach((i) => (sold[i.productId] = (sold[i.productId] || 0) + i.qty)));
+
+    // Sản phẩm "Mọi loại tóc" cũng khớp khi chọn một loại tóc cụ thể ("Tóc ..."), nhưng không tính các lựa chọn về da đầu
+    function matchGroup(g, p) {
+      const picked = state[g.key];
+      if (!picked.length) return true;
+      const values = g.values(p);
+      if (values.some((v) => picked.includes(v))) return true;
+      return g.key === "hair" && values.includes("Mọi loại tóc") && picked.some((v) => v.startsWith("Tóc "));
+    }
+
+    // Dung tích rẻ nhất nằm trong khoảng giá đang chọn (sản phẩm khớp nếu có ít nhất 1 dung tích trong khoảng)
+    function variantInRange(p) {
+      const inRange = p.variants.filter((v) => { const u = Store.unitPrice(p, v); return state.price.some((r) => { const [a, b] = r.split("-").map(Number); return u >= a && u < b; }); });
+      return inRange.sort((x, y) => x.price - y.price)[0];
+    }
+
+    // Lọc: giữa các nhóm là VÀ, trong cùng nhóm là HOẶC -> sản phẩm luôn khớp ít nhất 1 lựa chọn của mỗi nhóm đang bật
+    function filtered() {
+      let list = all.filter((p) => GROUPS.every((g) => matchGroup(g, p)));
+      if (state.price.length) list = list.filter(variantInRange);
+      if (state.q.length >= 2) { const q = norm(state.q); list = list.filter((p) => norm(`${p.name} ${p.collection} ${p.short} ${p.description}`).includes(q)); }
+      const price = (p) => (state.price.length ? Store.unitPrice(p, variantInRange(p)) : Store.priceRange(p).min);
+      const sorters = { new: (a, b) => (b.createdAt || "").localeCompare(a.createdAt || "") || a.name.localeCompare(b.name), best: (a, b) => (sold[b.id] || 0) - (sold[a.id] || 0), "price-asc": (a, b) => price(a) - price(b), "price-desc": (a, b) => price(b) - price(a), name: (a, b) => a.name.localeCompare(b.name) };
+      return list.sort(sorters[state.sort]);
+    }
+
+    function renderFilters() {
+      UI.$("#filters").innerHTML = GROUPS.map((g) => {
+        const values = [...new Set(all.flatMap(g.values))].sort();
+        return `<fieldset><h4>${g.label}</h4>${values.map((v) => `<label class="check"><input type="checkbox" data-k="${g.key}" value="${UI.esc(v)}" ${state[g.key].includes(v) ? "checked" : ""}> ${UI.esc(v)}</label>`).join("")}</fieldset>`;
+      }).join("") + `<fieldset><h4>Khoảng giá</h4>${PRICES.map(([v, l]) => `<label class="check"><input type="checkbox" data-k="price" value="${v}" ${state.price.includes(v) ? "checked" : ""}> ${l}</label>`).join("")}</fieldset>`;
+      UI.$$("#filters input").forEach((cb) => (cb.onchange = () => {
+        const arr = state[cb.dataset.k];
+        cb.checked ? arr.push(cb.value) : arr.splice(arr.indexOf(cb.value), 1);
+        state.page = 1;
+        render();
+      }));
+    }
+
+    function render() {
+      sync();
+      const list = filtered();
+      const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+      state.page = Math.min(state.page, pages);
+      const chips = [...GROUPS.map((g) => g.key), "price"].flatMap((k) => state[k].map((v) => ({ k, v, label: k === "price" ? PRICES.find((x) => x[0] === v)?.[1] : v })));
+      if (state.q) chips.unshift({ k: "q", v: state.q, label: `“${state.q}”` });
+      UI.$("#active").innerHTML = chips.length ? `<span class="muted">Đang lọc:</span>${chips.map((c) => `<button class="chip" data-k="${c.k}" data-v="${UI.esc(c.v)}">${UI.esc(c.label)} ✕</button>`).join("")}<button class="link" id="clear">Xóa tất cả</button>` : "";
+      UI.$$("#active .chip").forEach((b) => (b.onclick = () => {
+        if (b.dataset.k === "q") { state.q = ""; UI.$("#q").value = ""; } else state[b.dataset.k] = state[b.dataset.k].filter((x) => x !== b.dataset.v);
+        state.page = 1; renderFilters(); render();
+      }));
+      if (UI.$("#clear")) UI.$("#clear").onclick = () => { [...GROUPS.map((g) => g.key), "price"].forEach((k) => (state[k] = [])); state.q = ""; UI.$("#q").value = ""; state.page = 1; renderFilters(); render(); };
+
+      const only = state.collection.length === 1 && chips.length === 1 ? state.collection[0] : null;
+      UI.$("#title").textContent = only || (chips.length ? "Kết quả lọc" : "Tất cả sản phẩm");
+      UI.$("#count").textContent = `${list.length} sản phẩm`;
+      UI.$("#grid").innerHTML = list.length
+        ? list.slice((state.page - 1) * PER_PAGE, state.page * PER_PAGE).map((p) => UI.productCard(p, state.price.length ? variantInRange(p) : null)).join("")
+        : `<div class="empty" style="grid-column:1/-1"><h3>Không tìm thấy sản phẩm phù hợp</h3><p class="muted">Thử bỏ bớt bộ lọc hoặc dùng từ khóa khác.</p><button class="btn btn-outline" onclick="document.getElementById('clear')?.click()">Xóa bộ lọc</button></div>`;
+      UI.$("#pager").innerHTML = pages > 1 ? Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === state.page ? "on" : ""}" data-p="${i + 1}">${i + 1}</button>`).join("") : "";
+      UI.$$("#pager button").forEach((b) => (b.onclick = () => { state.page = +b.dataset.p; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+    }
+
+    UI.$("#q").value = state.q;
+    UI.$("#sort").value = state.sort;
+    UI.$("#sort").onchange = (e) => { state.sort = e.target.value; render(); };
+    let timer;
+    UI.$("#q").oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => { const v = e.target.value.trim(); if (v.length === 1) return; state.q = v; state.page = 1; render(); }, 250); };
+    UI.$("#search-form").onsubmit = (e) => e.preventDefault();
+    UI.$("#filter-toggle").onclick = () => UI.$("#filters").classList.toggle("open");
+    renderFilters();
+    render();
+  </script>
+</body>
+</html>

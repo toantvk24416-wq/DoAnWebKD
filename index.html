@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Davines Việt Nam – Chăm sóc tóc bền vững</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main>
+    <section class="hero" id="hero">
+      <div class="container">
+        <div class="eyebrow">Naturaltech</div>
+        <h1>Chăm sóc tóc từ chân tóc</h1>
+        <p>Dầu gội ENERGIZING giúp giảm gãy rụng, cho chân tóc chắc khỏe hơn mỗi ngày.</p>
+        <a class="btn btn-light" href="product.html?id=dau-goi-energizing">Khám phá ngay</a>
+      </div>
+    </section>
+
+    <section class="section container">
+      <div class="section-head">
+        <div><h2>Tìm theo vấn đề tóc</h2><p class="muted" style="margin:0">Chọn tình trạng tóc của bạn, chúng tôi gợi ý sản phẩm và quy trình phù hợp.</p></div>
+        <a class="link" href="products.html">Xem tất cả sản phẩm</a>
+      </div>
+      <div class="concerns" id="concerns"></div>
+    </section>
+
+    <section class="split">
+      <div class="soft">
+        <div class="eyebrow">9 họ sản phẩm</div>
+        <h2>Essential Haircare</h2>
+        <p>Dòng chăm sóc hằng ngày cho từng nhu cầu, mỗi họ chứa một hoạt chất từ nông trại hữu cơ tái sinh.</p>
+        <a class="link" href="products.html?collection=Essential%20Haircare">Xem dòng Essential Haircare</a>
+      </div>
+      <div class="dark">
+        <div class="eyebrow">Chăm sóc da đầu</div>
+        <h2>Naturaltech</h2>
+        <p>Giải pháp chuyên sâu cho da đầu: chống rụng, trị gàu, kiểm soát dầu và làm dịu.</p>
+        <a class="link" href="products.html?collection=Naturaltech" style="color:#fff">Xem dòng Naturaltech</a>
+      </div>
+    </section>
+
+    <section class="section container">
+      <div class="section-head"><h2>Bán chạy nhất</h2><a class="link" href="products.html?sort=best">Xem tất cả sản phẩm</a></div>
+      <div class="grid" id="best"></div>
+    </section>
+
+    <section class="story">
+      <div class="img" id="story-img"></div>
+      <div class="txt">
+        <div class="eyebrow">Về Davines</div>
+        <h2>Từ một phòng thí nghiệm gia đình</h2>
+        <p class="muted">Từ một phòng thí nghiệm gia đình ở Parma, Ý, Davines phát triển sản phẩm chăm sóc tóc chuyên nghiệp với thành phần có nguồn gốc tự nhiên và bao bì tối giản.</p>
+        <div class="stats"><div><b>1983</b><span>Thành lập tại Parma</span></div><div><b>2016</b><span>Chứng nhận B Corp</span></div><div><b>90+</b><span>Quốc gia có mặt</span></div></div>
+        <a class="btn btn-outline" href="about.html">Câu chuyện Davines</a>
+      </div>
+    </section>
+
+    <section class="section container">
+      <div class="section-head"><h2>Hàng mới về</h2><a class="link" href="products.html?sort=new">Xem tất cả</a></div>
+      <div class="grid" id="new"></div>
+    </section>
+
+    <section class="newsletter">
+      <div class="container">
+        <h2>Nhận tin từ Davines</h2>
+        <p class="muted">Ưu đãi và mẹo chăm sóc tóc mỗi tháng. Nhập email để nhận mã WELCOME15.</p>
+        <form id="news-form" novalidate>
+          <div class="field" style="margin:0;min-width:300px"><input class="input" name="email" type="email" placeholder="Email của bạn"></div>
+          <button class="btn">Đăng ký</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    UI.header("home");
+    UI.footer();
+    const all = Store.products();
+    const img = (id) => Store.product(id)?.variants.find((v) => v.images[0])?.images[0] || "";
+
+    UI.$("#hero").style.background = `var(--c-dark) url("${img("dau-goi-energizing")}") right 12% center / auto 90% no-repeat`;
+    UI.$("#story-img").style.backgroundImage = `url("${img("dau-goi-oi")}")`;
+    UI.$("#story-img").style.backgroundSize = "contain";
+    UI.$("#story-img").style.backgroundRepeat = "no-repeat";
+
+    const concerns = [
+      ["Tóc khô", "hair", "dau-goi-momo"], ["Tóc hư tổn", "hair", "dau-goi-nounou"], ["Tóc nhuộm", "hair", "dau-goi-minu"],
+      ["Tóc xoăn", "hair", "dau-goi-love-curl"], ["Tóc mỏng", "hair", "dau-goi-volu"], ["Da đầu dầu", "hair", "dau-goi-rebalancing"],
+    ];
+    UI.$("#concerns").innerHTML = concerns.map(([label, key, pid]) => `
+      <a class="concern" href="products.html?${key}=${encodeURIComponent(label)}">
+        <div class="thumb" style="background-image:url('${img(pid)}')"></div>
+        <div><span>${label}</span><span>→</span></div>
+      </a>`).join("");
+
+    // Bán chạy = tổng số lượng đã bán trong các đơn đã giao
+    const sold = {};
+    Store.db.orders.filter((o) => o.status === "delivered").forEach((o) => o.items.forEach((i) => (sold[i.productId] = (sold[i.productId] || 0) + i.qty)));
+    const best = [...all].sort((a, b) => (sold[b.id] || 0) - (sold[a.id] || 0)).slice(0, 4);
+    UI.$("#best").innerHTML = best.map(UI.productCard).join("");
+    UI.$("#new").innerHTML = all.filter((p) => p.kind !== "Dầu gội").slice(0, 4).map(UI.productCard).join("");
+
+    UI.$("#news-form").onsubmit = (e) => {
+      e.preventDefault();
+      if (!UI.validate(e.target, { email: [UI.V.required("email"), UI.V.email] })) return;
+      UI.toast("Cảm ơn bạn! Mã <b>WELCOME15</b> (giảm 15% cho đơn từ 500.000 ₫) đã được gửi tới email.");
+      e.target.reset();
+    };
+  </script>
+</body>
+</html>

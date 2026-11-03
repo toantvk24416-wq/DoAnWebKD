@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tài khoản của tôi – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-head"><h1>Tài khoản của tôi</h1><p class="muted" id="hello"></p></div>
+    <div class="account">
+      <nav class="side-nav" id="side"></nav>
+      <section id="app"></section>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    if (!Store.currentUser()) location.replace("login.html?next=account.html");
+    UI.header("account");
+    UI.footer();
+    const { fmt } = Store;
+    const { V } = UI;
+    const app = UI.$("#app");
+    const TABS = [["info", "Thông tin cá nhân"], ["password", "Đổi mật khẩu"], ["address", "Địa chỉ"], ["orders", "Lịch sử đơn hàng"]];
+    let tab = TABS.some((t) => t[0] === UI.qs("tab")) ? UI.qs("tab") : "info";
+
+    function nav() {
+      const u = Store.currentUser();
+      UI.$("#hello").textContent = `Xin chào, ${u.name}`;
+      UI.$("#side").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${l}</button>`).join("") + `<button id="logout">Đăng xuất</button>`;
+      UI.$$("#side [data-t]").forEach((b) => (b.onclick = () => { tab = b.dataset.t; history.replaceState(null, "", `account.html?tab=${tab}`); render(); }));
+      UI.$("#logout").onclick = async () => { if (await UI.confirmBox("Đăng xuất?", "Giỏ hàng của bạn được lưu trong tài khoản.", "Đăng xuất")) { Store.logout(); location.href = "index.html"; } };
+    }
+
+    const VIEWS = {
+      info() {
+        const u = Store.currentUser();
+        app.innerHTML = `
+          <h2>Thông tin cá nhân</h2>
+          <form id="f" style="max-width:560px" novalidate>
+            <div class="field"><label>Họ và tên</label><input class="input" name="name" value="${UI.esc(u.name)}"></div>
+            <div class="field"><label>Email (tên đăng nhập)</label><input class="input" value="${UI.esc(u.email)}" readonly><div class="small muted">Email dùng để đăng nhập nên không thể thay đổi.</div></div>
+            <div class="row-2">
+              <div class="field"><label>Số điện thoại</label><input class="input" name="phone" value="${UI.esc(u.phone)}"></div>
+              <div class="field"><label>Ngày sinh</label><input class="input" name="birthday" type="date" value="${UI.esc(u.birthday)}" max="${Store.today()}"></div>
+            </div>
+            <button class="btn" id="save" disabled>Lưu thay đổi</button>
+          </form>`;
+        const f = UI.$("#f");
+        f.oninput = () => (UI.$("#save").disabled = false); // chỉ bật nút Lưu khi có thay đổi
+        f.onsubmit = (e) => {
+          e.preventDefault();
+          if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], birthday: [(v) => (v && v > Store.today() ? "Ngày sinh không được ở tương lai." : v && v < "1900-01-01" ? "Ngày sinh không hợp lệ." : "")] })) return;
+          Store.updateProfile({ name: f.name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value });
+          UI.toast("Đã lưu thông tin cá nhân.");
+          nav(); VIEWS.info();
+        };
+      },
+      password() {
+        app.innerHTML = `
+          <h2>Đổi mật khẩu</h2>
+          <form id="f" style="max-width:420px" novalidate>
+            <div class="field"><label>Mật khẩu hiện tại</label><input class="input" name="old" type="password" autocomplete="current-password"></div>
+            <div class="field"><label>Mật khẩu mới</label><input class="input" name="pass" type="password" autocomplete="new-password"></div>
+            <div class="field"><label>Nhập lại mật khẩu mới</label><input class="input" name="pass2" type="password" autocomplete="new-password"></div>
+            <button class="btn">Đổi mật khẩu</button>
+          </form>`;
+        const f = UI.$("#f");
+        f.onsubmit = (e) => {
+          e.preventDefault();
+          if (!UI.validate(f, { old: [V.required("mật khẩu hiện tại")], pass: [V.required("mật khẩu mới"), V.password, (v) => (v === f.old.value ? "Mật khẩu mới phải khác mật khẩu hiện tại." : "")], pass2: [(v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")] })) return;
+          const r = Store.changePassword(f.old.value, f.pass.value);
+          if (!r.ok) { const fld = f.old.closest(".field"); fld.classList.add("error"); fld.querySelector(".err").textContent = r.error; return; }
+          f.reset(); UI.toast("Đã đổi mật khẩu.");
+        };
+      },
+      address() {
+        const u = Store.currentUser();
+        app.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center"><h2>Địa chỉ</h2><button class="btn btn-outline" id="add">+ Thêm địa chỉ</button></div>
+          ${u.addresses.length ? u.addresses.map((a) => `
+            <div class="addr">
+              <div><b>${UI.esc(a.name)}</b> · ${UI.esc(a.phone)} ${a.isDefault ? `<span class="tag">Mặc định</span>` : ""}<div class="muted small">${UI.esc(a.line)}, ${UI.esc(a.ward)}, ${UI.esc(a.city)}</div></div>
+              <div style="display:flex;gap:14px;align-items:flex-start">${a.isDefault ? "" : `<button class="link small" data-def="${a.id}">Đặt mặc định</button>`}<button class="link small" data-edit="${a.id}">Sửa</button><button class="link small" data-del="${a.id}">Xóa</button></div>
+            </div>`).join("") : `<div class="empty">Bạn chưa lưu địa chỉ nào.</div>`}`;
+        UI.$("#add").onclick = () => editAddress();
+        UI.$$("[data-edit]").forEach((b) => (b.onclick = () => editAddress(u.addresses.find((a) => a.id === b.dataset.edit))));
+        UI.$$("[data-def]").forEach((b) => (b.onclick = () => { Store.saveAddress({ ...u.addresses.find((a) => a.id === b.dataset.def), isDefault: true }); VIEWS.address(); }));
+        UI.$$("[data-del]").forEach((b) => (b.onclick = async () => { if (await UI.confirmBox("Xóa địa chỉ?", "Địa chỉ này sẽ bị xóa khỏi tài khoản.", "Xóa")) { Store.deleteAddress(b.dataset.del); VIEWS.address(); } }));
+      },
+      orders() {
+        const list = Store.myOrders();
+        app.innerHTML = `<h2>Lịch sử đơn hàng</h2>` + (list.length ? `
+          <table class="table"><thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th>Tổng thanh toán</th><th>Trạng thái</th><th></th></tr></thead>
+          <tbody>${list.map((o) => `<tr><td><b>${o.code}</b></td><td>${UI.dt(o.createdAt, false)}</td><td>${fmt(o.total)}</td><td>${UI.statusBadge(o.status)}</td><td style="text-align:right"><button class="btn btn-outline" data-o="${o.code}">Xem chi tiết</button></td></tr>`).join("")}</tbody></table>`
+          : `<div class="empty"><p>Bạn chưa có đơn hàng nào.</p><a class="btn" href="products.html">Mua sắm ngay</a></div>`);
+        const open = (code) => { const m = UI.modal(`${UI.orderDetail(Store.order(code))}<div class="modal-actions"><button class="btn" data-close>Đóng</button></div>`, { wide: true }); };
+        UI.$$("[data-o]").forEach((b) => (b.onclick = () => open(b.dataset.o)));
+        const c = UI.qs("code");
+        if (c && list.some((o) => o.code === c)) { open(c); history.replaceState(null, "", "account.html?tab=orders"); }
+      },
+    };
+
+    function editAddress(a) {
+      const m = UI.modal(`
+        <h3>${a ? "Sửa địa chỉ" : "Thêm địa chỉ"}</h3>
+        <form id="af" novalidate>
+          <div class="row-2"><div class="field"><label>Họ tên người nhận</label><input class="input" name="name" value="${UI.esc(a?.name || Store.currentUser().name)}"></div><div class="field"><label>Số điện thoại</label><input class="input" name="phone" value="${UI.esc(a?.phone || Store.currentUser().phone)}"></div></div>
+          <div class="row-2"><div class="field"><label>Tỉnh/Thành phố</label><select class="input" name="city"></select></div><div class="field"><label>Phường/Xã</label><select class="input" name="ward"></select></div></div>
+          <div class="field"><label>Địa chỉ chi tiết</label><input class="input" name="line" value="${UI.esc(a?.line || "")}"></div>
+          <label class="check"><input type="checkbox" name="isDefault" ${a?.isDefault ? "checked" : ""}> Đặt làm địa chỉ mặc định</label>
+          <div class="modal-actions"><button class="btn">Lưu địa chỉ</button><button type="button" class="btn btn-outline" data-close>Hủy</button></div>
+        </form>`, { wide: true });
+      const f = UI.$("#af", m.el);
+      UI.fillPlaces(f.city, f.ward, a?.city, a?.ward);
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], city: [(v) => (v ? "" : "Vui lòng chọn tỉnh/thành.")], ward: [(v) => (v ? "" : "Vui lòng chọn phường/xã.")], line: [V.required("địa chỉ")] })) return;
+        Store.saveAddress({ id: a?.id, name: f.name.value.trim(), phone: f.phone.value.trim(), city: f.city.value, ward: f.ward.value, line: f.line.value.trim(), isDefault: f.isDefault.checked });
+        m.close(); UI.toast(a ? "Đã cập nhật địa chỉ." : "Đã thêm địa chỉ."); VIEWS.address();
+      };
+    }
+
+    function render() { nav(); VIEWS[tab](); }
+    if (Store.currentUser()) render();
+  </script>
+</body>
+</html>
