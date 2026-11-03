@@ -9,6 +9,7 @@
 <body>
   <main>
     <section class="hero" id="hero">
+      <div class="hero-product" id="hero-product"></div>
       <div class="container">
         <div class="eyebrow">Naturaltech</div>
         <h1>Chăm sóc tóc từ chân tóc</h1>
@@ -82,10 +83,8 @@
     const all = Store.products();
     const img = (id) => Store.product(id)?.variants.find((v) => v.images[0])?.images[0] || "";
 
-    UI.$("#hero").style.background = `var(--c-dark) url("${img("dau-goi-energizing")}") right 12% center / auto 90% no-repeat`;
-    UI.$("#story-img").style.backgroundImage = `url("${img("dau-goi-oi")}")`;
-    UI.$("#story-img").style.backgroundSize = "contain";
-    UI.$("#story-img").style.backgroundRepeat = "no-repeat";
+    UI.$("#hero-product").innerHTML = `<img src="${img("dau-goi-energizing")}" alt="ENERGIZING Dầu gội">`;
+    UI.$("#story-img").innerHTML = `<img src="${img("dau-goi-oi")}" alt="OI Dầu gội">`;
 
     const concerns = [
       ["Tóc khô", "hair", "dau-goi-momo"], ["Tóc hư tổn", "hair", "dau-goi-nounou"], ["Tóc nhuộm", "hair", "dau-goi-minu"],
@@ -93,7 +92,7 @@
     ];
     UI.$("#concerns").innerHTML = concerns.map(([label, key, pid]) => `
       <a class="concern" href="products.html?${key}=${encodeURIComponent(label)}">
-        <div class="thumb" style="background-image:url('${img(pid)}')"></div>
+        <div class="thumb"><img src="${img(pid)}" alt="${label}" loading="lazy"></div>
         <div><span>${label}</span><span>→</span></div>
       </a>`).join("");
 

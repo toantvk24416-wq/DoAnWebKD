@@ -139,7 +139,7 @@
           const q = $("#pq").value.trim().toLowerCase(), c = $("#pc").value, a = $("#pa").value;
           const list = Store.products({ all: true }).filter((p) => (!c || p.collection === c) && (!a || String(+p.active) === a) && (!q || `${p.name} ${p.variants.map((v) => v.sku).join(" ")}`.toLowerCase().includes(q)));
           $("#plist").innerHTML = `<table class="table"><thead><tr><th></th><th>Sản phẩm</th><th>Dòng</th><th>Dung tích · giá · tồn</th><th>Giảm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${list.map((p) => `
-            <tr><td><div style="width:48px;height:48px;background:var(--c-bg-soft)">${p.variants[0].images[0] ? `<img src="${img(p.variants.find((v) => v.images[0])?.images[0])}" style="width:100%;height:100%;object-fit:contain">` : ""}</div></td>
+            <tr><td><div class="admin-thumb">${p.variants[0].images[0] ? `<img src="${img(p.variants.find((v) => v.images[0])?.images[0])}">` : ""}</div></td>
             <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.kind)}</div></td><td>${esc(p.collection)}</td>
             <td class="small">${p.variants.map((v) => `${esc(v.size)} · ${fmt(v.price)} · ${v.stock <= 0 ? `<span style="color:var(--c-error)">hết</span>` : v.stock}`).join("<br>")}</td>
             <td>${p.sale ? p.sale + "%" : "—"}</td><td>${p.active ? `<span class="status s-delivered">Đang bán</span>` : `<span class="status">Ngừng bán</span>`}</td>
