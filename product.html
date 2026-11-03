@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chi tiết sản phẩm – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container" id="app"></main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    UI.header("products");
+    UI.footer();
+    const { fmt } = Store;
+    const p = Store.product(UI.qs("id"));
+    const app = UI.$("#app");
+
+    if (!p || !p.active) {
+      app.innerHTML = `<div class="empty" style="margin:56px 0"><h2>Không tìm thấy sản phẩm</h2><p class="muted">Sản phẩm có thể đã ngừng bán.</p><a class="btn" href="products.html">Xem sản phẩm khác</a></div>`;
+    } else {
+      document.title = `${p.name} – Davines Việt Nam`;
+      // Chọn sẵn phiên bản theo ?sku=, nếu không thì phiên bản rẻ nhất còn hàng
+      let variant = p.variants.find((v) => v.sku === UI.qs("sku")) || p.variants.find((v) => v.stock > 0) || p.variants[0];
+      let qty = 1;
+      let imgIdx = 0;
+      const back = document.referrer.includes("products.html") ? document.referrer : "products.html";
+
+      function images() {
+        const own = variant.images;
+        return own.length ? own : p.variants.flatMap((v) => v.images).slice(0, 4);
+      }
+      function maxQty() { return Math.min(Store.RULES.maxPerVariant, variant.stock); }
+
+      function render() {
+        const imgs = images();
+        const price = Store.unitPrice(p, variant);
+        const out = variant.stock <= 0;
+        app.innerHTML = `
+          <div class="page-head" style="display:flex;justify-content:space-between;gap:16px">
+            <div class="crumbs" style="margin:0"><a href="index.html">Trang chủ</a> / <a href="products.html">Sản phẩm</a> / <a href="products.html?collection=${encodeURIComponent(p.collection)}">${UI.esc(p.collection)}</a> / ${UI.esc(p.name)}</div>
+            <a class="link small" href="${UI.esc(back)}">‹ Quay lại danh sách</a>
+          </div>
+          <div class="pdp">
+            <div class="gallery">
+              <div class="main">${imgs[imgIdx] ? `<img src="${UI.esc(imgs[imgIdx])}" alt="${UI.esc(p.name)} ${UI.esc(variant.size)}">` : ""}</div>
+              ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((src, i) => `<button class="${i === imgIdx ? "on" : ""}" data-i="${i}" aria-label="Ảnh ${i + 1}"><img src="${UI.esc(src)}" alt=""></button>`).join("")}</div>` : ""}
+            </div>
+            <div>
+              <div class="eyebrow">${UI.esc(p.collection)}</div>
+              <h1 style="margin:6px 0">${UI.esc(p.name)}</h1>
+              <div class="muted">${UI.esc(p.short)}</div>
+              <div class="price-big">${fmt(price)} ${p.sale ? `<s class="muted" style="font-size:18px">${fmt(variant.price)}</s> <span class="badge sale">Giảm ${p.sale}%</span>` : ""}</div>
+              <div class="eyebrow">Dung tích</div>
+              <div class="sizes">${p.variants.map((v) => `<button class="size-btn ${v === variant ? "on" : ""} ${v.stock <= 0 ? "out" : ""}" data-sku="${v.sku}" title="${v.stock <= 0 ? "Tạm hết hàng" : ""}">${UI.esc(v.size)}</button>`).join("")}</div>
+              <div class="stock ${out ? "out" : ""}">${out ? "Tạm hết hàng" : variant.stock <= 5 ? `Chỉ còn ${variant.stock} sản phẩm` : "Còn hàng"}</div>
+              <div class="buy-row">
+                <div class="qty"><button id="minus" aria-label="Giảm" ${out ? "disabled" : ""}>−</button><input id="qty" type="number" min="1" max="${maxQty()}" value="${out ? 0 : qty}" ${out ? "disabled" : ""} aria-label="Số lượng"><button id="plus" aria-label="Tăng" ${out ? "disabled" : ""}>+</button></div>
+                <button class="btn" id="add" ${out ? "disabled" : ""}>${out ? "Tạm hết hàng" : "Thêm vào giỏ hàng"}</button>
+              </div>
+              <div class="note">Tối đa ${Store.RULES.maxPerVariant} sản phẩm cho mỗi dung tích.<br>Phí giao hàng ${fmt(Store.RULES.shippingFee)} · Miễn phí cho đơn từ ${fmt(Store.RULES.freeShipFrom)} (sau giảm giá).</div>
+              <div class="accordion">
+                <details open><summary>Mô tả</summary><p>${UI.esc(p.description)}.</p></details>
+                ${p.benefits?.length ? `<details><summary>Công dụng</summary><ul>${p.benefits.map((b) => `<li>${UI.esc(b)}</li>`).join("")}</ul>${p.extra ? `<p>${UI.esc(p.extra)}</p>` : ""}</details>` : ""}
+                <details><summary>Thành phần</summary><p>${p.ingredients ? UI.esc(p.ingredients) : "Vui lòng xem bảng thành phần trên bao bì sản phẩm."}</p>${p.ingredients ? `<p class="small muted">Thông tin có thể thay đổi, vui lòng tham khảo bảng thành phần mới nhất trên bao bì.</p>` : ""}</details>
+                <details><summary>Phù hợp với</summary><p>${[...p.needs, ...p.hair].map((t) => `<span class="tag">${UI.esc(t)}</span>`).join(" ")}</p></details>
+                <details><summary>Cách dùng</summary><p>Thoa một lượng vừa đủ lên tóc ướt, massage nhẹ nhàng rồi xả sạch với nước. Dùng kèm dầu xả cùng dòng để đạt hiệu quả tốt nhất.</p></details>
+                <details><summary>Mã sản phẩm</summary><p>SKU ${UI.esc(variant.sku)}</p></details>
+              </div>
+            </div>
+          </div>
+          <section class="section" style="padding-top:0">
+            <div class="section-head"><h2>Có thể bạn cũng thích</h2></div>
+            <div class="grid" id="related"></div>
+          </section>`;
+
+        UI.$$(".size-btn").forEach((b) => (b.onclick = () => {
+          variant = p.variants.find((v) => v.sku === b.dataset.sku);
+          qty = Math.min(qty, Math.max(1, maxQty()));
+          imgIdx = 0;
+          history.replaceState(null, "", `product.html?id=${p.id}&sku=${variant.sku}`);
+          render();
+        }));
+        UI.$$(".thumbs button").forEach((b) => (b.onclick = () => { imgIdx = +b.dataset.i; render(); }));
+        const input = UI.$("#qty");
+        const setQty = (n) => { qty = Math.max(1, Math.min(n || 1, maxQty())); input.value = qty; };
+        UI.$("#minus").onclick = () => setQty(qty - 1);
+        UI.$("#plus").onclick = () => { if (qty >= maxQty()) UI.toast(`Tối đa ${maxQty()} sản phẩm cho dung tích này.`, "error"); setQty(qty + 1); };
+        input.onchange = () => setQty(parseInt(input.value, 10));
+        UI.$("#add").onclick = () => {
+          const r = Store.addToCart(variant.sku, qty);
+          if (!r.ok) return UI.toast(r.error, "error");
+          // Giữ nguyên số lượng khách đã chọn, chỉ báo đã thêm thành công
+          UI.toast(`Đã thêm <b>${UI.esc(p.name)} ${UI.esc(variant.size)} × ${qty}</b> vào giỏ. <a href="cart.html">Xem giỏ hàng</a>`);
+        };
+
+        const related = Store.products().filter((x) => x.id !== p.id && (x.collection === p.collection || x.needs.some((n) => p.needs.includes(n)))).slice(0, 4);
+        UI.$("#related").innerHTML = related.map(UI.productCard).join("");
+      }
+      render();
+    }
+  </script>
+</body>
+</html>

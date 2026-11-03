@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập quản trị – Davines</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body style="background:var(--c-bg-soft)">
+  <main class="auth" style="background:#fff;padding:40px;margin-top:10vh">
+    <div class="logo" style="text-align:center;margin-bottom:6px">davines</div>
+    <div class="eyebrow" style="text-align:center;margin-bottom:24px">Quản trị website</div>
+    <h2>Đăng nhập quản trị</h2>
+    <p class="muted small">Chỉ dành cho tài khoản quản trị do Davines cấp. Không hỗ trợ tự đăng ký.</p>
+    <form id="f" novalidate>
+      <div class="field"><label for="email">Email quản trị</label><input class="input" id="email" name="email" type="email" autocomplete="username"></div>
+      <div class="field"><label for="pass">Mật khẩu</label><input class="input" id="pass" name="pass" type="password" autocomplete="current-password"></div>
+      <button class="btn btn-block">Đăng nhập</button>
+    </form>
+    <p class="small" style="text-align:center"><a href="../index.html">‹ Về trang cửa hàng</a></p>
+  </main>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    if (Store.currentAdmin()) location.replace("index.html");
+    const f = UI.$("#f");
+    f.onsubmit = (e) => {
+      e.preventDefault();
+      if (!UI.validate(f, { email: [UI.V.required("email"), UI.V.email], pass: [UI.V.required("mật khẩu")] })) return;
+      const r = Store.adminLogin(f.email.value, f.pass.value);
+      if (!r.ok) { f.pass.value = ""; const fld = f.pass.closest(".field"); fld.classList.add("error"); fld.querySelector(".err").textContent = r.error; return; }
+      location.href = "index.html";
+    };
+  </script>
+</body>
+</html>

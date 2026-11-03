@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản trị – Davines</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div class="admin">
+    <aside>
+      <a class="logo" href="#report">davines<small>QUẢN TRỊ</small></a>
+      <nav id="menu"></nav>
+    </aside>
+    <main>
+      <div class="admin-top"><div><h1 id="title"></h1><div class="small muted" id="subtitle"></div></div><div class="small"><span id="who"></span> · <button class="link" id="logout">Đăng xuất</button></div></div>
+      <div class="admin-body" id="app"></div>
+    </main>
+  </div>
+
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    const admin = Store.currentAdmin();
+    if (!admin) location.replace("login.html");
+    const { fmt } = Store;
+    const { esc, $, $$ } = UI;
+    const app = $("#app");
+    const img = (p) => (p ? "../" + p : "");
+    const SECTIONS = {
+      report: ["Báo cáo bán hàng", "Số liệu chỉ đọc, tính từ dữ liệu đơn hàng."],
+      orders: ["Đơn hàng", "Xác nhận và cập nhật trạng thái giao hàng."],
+      products: ["Sản phẩm", "Thêm, sửa, ngừng bán sản phẩm và giá theo dung tích."],
+      categories: ["Danh mục & dòng sản phẩm", "Các dòng sản phẩm và số sản phẩm đang bán."],
+      inventory: ["Tồn kho", "Theo dõi và điều chỉnh tồn kho theo từng dung tích."],
+      vouchers: ["Voucher & khuyến mãi", "Mã ưu đãi nhập tay và giảm giá tự động theo sản phẩm."],
+    };
+
+    $("#who").textContent = admin ? admin.email : "";
+    $("#logout").onclick = async () => { if (await UI.confirmBox("Đăng xuất?", "Bạn sẽ quay lại trang đăng nhập quản trị.", "Đăng xuất")) { Store.adminLogout(); location.href = "login.html"; } };
+
+    function route() {
+      const key = SECTIONS[location.hash.slice(1)] ? location.hash.slice(1) : "report";
+      $("#menu").innerHTML = Object.entries(SECTIONS).map(([k, [t]]) => `<a href="#${k}" class="${k === key ? "on" : ""}">${t}</a>`).join("") + `<a href="../index.html" target="_blank" style="margin-top:24px;opacity:.7">Xem cửa hàng ↗</a>`;
+      $("#title").textContent = SECTIONS[key][0];
+      $("#subtitle").textContent = SECTIONS[key][1];
+      VIEWS[key]();
+    }
+    window.addEventListener("hashchange", route);
+
+    const VIEWS = {
+      // ---------- UC19 Báo cáo ----------
+      report() {
+        const to0 = Store.today();
+        const d0 = new Date();
+        const from0 = `${new Date(d0.getFullYear(), d0.getMonth() - 1, 1).getFullYear()}-${String(new Date(d0.getFullYear(), d0.getMonth() - 1, 1).getMonth() + 1).padStart(2, "0")}-01`; // đầu tháng trước
+        app.innerHTML = `
+          <form class="filters-row" id="rf" novalidate>
+            <div class="field"><label>Từ ngày</label><input class="input" type="date" name="from" value="${from0}" max="${to0}"></div>
+            <div class="field"><label>Đến ngày</label><input class="input" type="date" name="to" value="${to0}" max="${to0}"></div>
+            <button class="btn">Xem báo cáo</button>
+            <span class="small muted">Tối đa 12 tháng; ngày kết thúc không sau hôm nay.</span>
+          </form>
+          <div id="rep"></div>`;
+        const f = $("#rf");
+        const show = () => {
+          const ok = UI.validate(f, {
+            from: [(v) => (v ? "" : "Chọn ngày bắt đầu.")],
+            to: [(v) => (!v ? "Chọn ngày kết thúc." : v > to0 ? "Không được sau hôm nay." : v < f.from.value ? "Phải sau ngày bắt đầu." : (new Date(v) - new Date(f.from.value)) / 86400000 > 366 ? "Khoảng thời gian tối đa 12 tháng." : "")],
+          });
+          if (!ok) return;
+          const r = Store.report(f.from.value, f.to.value);
+          const maxW = Math.max(1, ...r.weeks.map((w) => w.value));
+          const maxS = Math.max(1, ...Object.values(r.byStatus));
+          $("#rep").innerHTML = `
+            <div class="kpis">
+              <div class="kpi"><div class="eyebrow">Doanh thu</div><b>${fmt(r.revenue)}</b><div class="small muted">Tổng thanh toán của ${r.delivered} đơn Đã giao hàng</div></div>
+              <div class="kpi"><div class="eyebrow">Số đơn hàng</div><b>${r.orders}</b><div class="small muted">Tính theo ngày đặt, gồm mọi trạng thái</div></div>
+              <div class="kpi"><div class="eyebrow">Giá trị đơn trung bình</div><b>${fmt(r.aov)}</b><div class="small muted">Doanh thu ÷ số đơn Đã giao hàng</div></div>
+              <div class="kpi"><div class="eyebrow">Khách mua hàng</div><b>${r.buyers}</b><div class="small muted">${r.firstTime} mua lần đầu · ${r.returning} mua lại</div></div>
+            </div>
+            <div class="admin-grid-2">
+              <div class="panel"><h3>Doanh thu theo tuần (triệu ₫)</h3><div class="small muted">Đơn Đã giao hàng, theo ngày đặt</div>
+                <div class="bars">${r.weeks.map((w) => `<div class="bar" style="height:${(w.value / maxW) * 100}%"><span>${(w.value / 1e6).toFixed(1).replace(".", ",")}</span></div>`).join("")}</div>
+                <div class="bar-labels">${r.weeks.map((w) => `<span>${w.label}</span>`).join("")}</div></div>
+              <div class="panel"><h3>Số đơn theo trạng thái</h3>
+                ${Store.STATUS.map((s) => `<div style="display:flex;justify-content:space-between" class="small"><span>${s.label}</span><b>${r.byStatus[s.key]}</b></div><div class="hbar"><i style="width:${(r.byStatus[s.key] / maxS) * 100}%"></i></div>`).join("")}
+                <div style="display:flex;justify-content:space-between"><b>Tổng</b><b>${r.orders}</b></div></div>
+            </div>
+            <div class="admin-grid-2">
+              <div class="panel"><h3>Top 10 sản phẩm bán chạy</h3><div class="small muted">Tổng số lượng trong đơn Đã giao hàng</div>
+                ${r.top.length ? `<table class="table"><thead><tr><th>#</th><th>Sản phẩm</th><th>Dòng</th><th style="text-align:right">Đã bán</th></tr></thead><tbody>${r.top.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.product.name)}</td><td>${esc(t.product.collection)}</td><td style="text-align:right">${t.qty}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Chưa có đơn đã giao trong khoảng này.</p>`}</div>
+              <div class="panel"><h3>Tình hình mua hàng</h3><div class="small muted">Khách nhận diện theo tài khoản, hoặc theo email với khách vãng lai</div>
+                <table class="table"><tbody>
+                  <tr><td>Khách mua lần đầu</td><td style="text-align:right"><b>${r.firstTime}</b></td></tr>
+                  <tr><td>Khách mua lại</td><td style="text-align:right"><b>${r.returning}</b></td></tr>
+                  <tr><td>Tỷ lệ mua lại</td><td style="text-align:right"><b>${r.buyers ? ((r.returning / r.buyers) * 100).toFixed(1).replace(".", ",") : 0}%</b></td></tr>
+                  <tr><td>Giá trị đơn trung bình</td><td style="text-align:right"><b>${fmt(r.aov)}</b></td></tr>
+                </tbody></table></div>
+            </div>`;
+        };
+        f.onsubmit = (e) => { e.preventDefault(); show(); };
+        show();
+      },
+
+      // ---------- UC17 Đơn hàng ----------
+      orders() {
+        app.innerHTML = `
+          <div class="filters-row">
+            <div class="field"><label>Tìm kiếm</label><input class="input" id="oq" placeholder="Mã đơn, tên, email, SĐT" style="width:260px"></div>
+            <div class="field"><label>Trạng thái</label><select class="input" id="os"><option value="">Tất cả</option>${Store.STATUS.map((s) => `<option value="${s.key}">${s.label}</option>`).join("")}</select></div>
+            <div class="field"><label>Thanh toán</label><select class="input" id="op"><option value="">Tất cả</option><option value="cod">COD</option><option value="vnpay">VNPay</option></select></div>
+          </div>
+          <div class="panel" id="olist"></div>`;
+        const draw = () => {
+          const q = $("#oq").value.trim().toLowerCase(), s = $("#os").value, p = $("#op").value;
+          const list = Store.db.orders.filter((o) => (!s || o.status === s) && (!p || o.payment === p) && (!q || `${o.code} ${o.customer.name} ${o.customer.email} ${o.customer.phone}`.toLowerCase().includes(q)));
+          $("#olist").innerHTML = `<div class="small muted" style="margin-bottom:8px">${list.length} đơn</div>` + (list.length ? `<table class="table"><thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th>Khách hàng</th><th>Thanh toán</th><th style="text-align:right">Tổng</th><th>Trạng thái</th><th></th></tr></thead><tbody>${list.map((o) => `
+            <tr><td><b>${o.code}</b></td><td>${UI.dt(o.createdAt)}</td><td>${esc(o.customer.name)}<div class="small muted">${o.userId ? "Thành viên" : "Khách vãng lai"}</div></td><td>${o.payment === "cod" ? "COD" : "VNPay"}<div class="small muted">${o.paid ? "Đã thanh toán" : "Chưa thanh toán"}</div></td><td style="text-align:right">${fmt(o.total)}</td><td>${UI.statusBadge(o.status)}</td><td><button class="btn btn-outline" data-o="${o.code}">Chi tiết</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted">Không có đơn phù hợp.</p>`);
+          $$("[data-o]").forEach((b) => (b.onclick = () => openOrder(b.dataset.o, draw)));
+        };
+        ["#oq", "#os", "#op"].forEach((id) => ($(id).oninput = draw));
+        draw();
+      },
+
+      // ---------- UC14 Sản phẩm ----------
+      products() {
+        const cols = [...new Set(Store.db.products.map((p) => p.collection))].sort();
+        app.innerHTML = `
+          <div class="filters-row">
+            <div class="field"><label>Tìm kiếm</label><input class="input" id="pq" placeholder="Tên, SKU" style="width:240px"></div>
+            <div class="field"><label>Dòng</label><select class="input" id="pc"><option value="">Tất cả</option>${cols.map((c) => `<option>${esc(c)}</option>`).join("")}</select></div>
+            <div class="field"><label>Trạng thái</label><select class="input" id="pa"><option value="">Tất cả</option><option value="1">Đang bán</option><option value="0">Ngừng bán</option></select></div>
+            <button class="btn" id="padd" style="margin-left:auto">+ Thêm sản phẩm</button>
+          </div>
+          <div class="panel" id="plist"></div>`;
+        const draw = () => {
+          const q = $("#pq").value.trim().toLowerCase(), c = $("#pc").value, a = $("#pa").value;
+          const list = Store.products({ all: true }).filter((p) => (!c || p.collection === c) && (!a || String(+p.active) === a) && (!q || `${p.name} ${p.variants.map((v) => v.sku).join(" ")}`.toLowerCase().includes(q)));
+          $("#plist").innerHTML = `<table class="table"><thead><tr><th></th><th>Sản phẩm</th><th>Dòng</th><th>Dung tích · giá · tồn</th><th>Giảm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${list.map((p) => `
+            <tr><td><div style="width:48px;height:48px;background:var(--c-bg-soft)">${p.variants[0].images[0] ? `<img src="${img(p.variants.find((v) => v.images[0])?.images[0])}" style="width:100%;height:100%;object-fit:contain">` : ""}</div></td>
+            <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.kind)}</div></td><td>${esc(p.collection)}</td>
+            <td class="small">${p.variants.map((v) => `${esc(v.size)} · ${fmt(v.price)} · ${v.stock <= 0 ? `<span style="color:var(--c-error)">hết</span>` : v.stock}`).join("<br>")}</td>
+            <td>${p.sale ? p.sale + "%" : "—"}</td><td>${p.active ? `<span class="status s-delivered">Đang bán</span>` : `<span class="status">Ngừng bán</span>`}</td>
+            <td style="white-space:nowrap"><button class="link small" data-e="${p.id}">Sửa</button> · <button class="link small" data-t="${p.id}">${p.active ? "Ngừng bán" : "Mở bán"}</button></td></tr>`).join("")}</tbody></table>`;
+          $$("[data-e]").forEach((b) => (b.onclick = () => editProduct(Store.product(b.dataset.e), draw)));
+          $$("[data-t]").forEach((b) => (b.onclick = async () => {
+            const p = Store.product(b.dataset.t);
+            if (p.active && !(await UI.confirmBox("Ngừng bán sản phẩm?", `${p.name} sẽ bị ẩn khỏi cửa hàng và hiện "Không khả dụng" trong giỏ của khách.`, "Ngừng bán"))) return;
+            p.active = !p.active; Store.saveProduct(p); draw();
+          }));
+        };
+        ["#pq", "#pc", "#pa"].forEach((id) => ($(id).oninput = draw));
+        $("#padd").onclick = () => editProduct(null, draw);
+        draw();
+      },
+
+      // ---------- UC15 Danh mục ----------
+      categories() {
+        const groups = {};
+        Store.products({ all: true }).forEach((p) => { (groups[p.collection] = groups[p.collection] || []).push(p); });
+        app.innerHTML = `<div class="panel"><table class="table"><thead><tr><th>Dòng sản phẩm</th><th>Loại</th><th>Đang bán</th><th>Ngừng bán</th><th></th></tr></thead><tbody>${Object.entries(groups).sort().map(([c, ps]) => `
+          <tr><td><b>${esc(c)}</b></td><td class="small">${[...new Set(ps.map((p) => p.kind))].join(", ")}</td><td>${ps.filter((p) => p.active).length}</td><td>${ps.filter((p) => !p.active).length}</td>
+          <td><button class="link small" data-r="${esc(c)}">Đổi tên</button> · <a class="small" href="../products.html?collection=${encodeURIComponent(c)}" target="_blank">Xem trên web ↗</a></td></tr>`).join("")}</tbody></table>
+          <p class="small muted">Dòng mới được tạo khi thêm sản phẩm với tên dòng chưa có. Một dòng chỉ biến mất khi không còn sản phẩm nào.</p></div>`;
+        $$("[data-r]").forEach((b) => (b.onclick = () => {
+          const old = b.dataset.r;
+          const m = UI.modal(`<h3>Đổi tên dòng</h3><form id="cf" novalidate><div class="field"><label>Tên mới</label><input class="input" name="name" value="${esc(old)}"></div><div class="modal-actions"><button class="btn">Lưu</button><button type="button" class="btn btn-outline" data-close>Hủy</button></div></form>`);
+          $("#cf", m.el).onsubmit = (e) => {
+            e.preventDefault();
+            const name = e.target.name.value.trim();
+            if (!UI.validate(e.target, { name: [UI.V.required("tên dòng"), (v) => (v !== old && groups[v] ? "Tên dòng đã tồn tại." : "")] })) return;
+            groups[old].forEach((p) => { p.collection = name; Store.saveProduct(p); });
+            m.close(); UI.toast("Đã đổi tên dòng sản phẩm."); VIEWS.categories();
+          };
+        }));
+      },
+
+      // ---------- UC16 Tồn kho ----------
+      inventory() {
+        app.innerHTML = `
+          <div class="filters-row">
+            <div class="field"><label>Tìm kiếm</label><input class="input" id="iq" placeholder="Tên, SKU" style="width:240px"></div>
+            <label class="check" style="margin-bottom:8px"><input type="checkbox" id="low"> Chỉ hiện sắp hết / hết hàng (≤ 5)</label>
+          </div>
+          <div class="admin-grid-2"><div class="panel" id="ilist"></div><div class="panel"><h3>Lịch sử thay đổi</h3><div id="ilog"></div></div></div>`;
+        const draw = () => {
+          const q = $("#iq").value.trim().toLowerCase(), low = $("#low").checked;
+          const rows = Store.products({ all: true }).flatMap((p) => p.variants.map((v) => ({ p, v }))).filter(({ p, v }) => (!low || v.stock <= 5) && (!q || `${p.name} ${v.sku}`.toLowerCase().includes(q)));
+          $("#ilist").innerHTML = `<table class="table"><thead><tr><th>SKU</th><th>Sản phẩm</th><th style="text-align:right">Tồn</th><th></th></tr></thead><tbody>${rows.map(({ p, v }) => `
+            <tr><td class="small">${v.sku}</td><td>${esc(p.name)} <span class="muted">${esc(v.size)}</span></td><td style="text-align:right;${v.stock <= 0 ? "color:var(--c-error)" : v.stock <= 5 ? "color:var(--c-warning)" : ""}"><b>${v.stock}</b></td><td><button class="link small" data-s="${v.sku}">Điều chỉnh</button></td></tr>`).join("")}</tbody></table>`;
+          const log = Store.db.stockLog.slice(0, 30);
+          $("#ilog").innerHTML = log.length ? `<table class="table"><tbody>${log.map((l) => `<tr><td class="small">${UI.dt(l.at)}<div>${esc(l.name)}</div><div class="muted">${esc(l.reason)}</div></td><td style="text-align:right;white-space:nowrap"><b style="color:${l.change > 0 ? "var(--c-success)" : "var(--c-error)"}">${l.change > 0 ? "+" : ""}${l.change}</b><div class="small muted">còn ${l.after}</div></td></tr>`).join("")}</tbody></table>` : `<p class="muted small">Chưa có thay đổi nào.</p>`;
+          $$("[data-s]").forEach((b) => (b.onclick = () => {
+            const { p, v } = Store.findVariant(b.dataset.s);
+            const m = UI.modal(`<h3>Điều chỉnh tồn kho</h3><p class="muted">${esc(p.name)} ${esc(v.size)} · đang tồn <b>${v.stock}</b></p>
+              <form id="sf" novalidate>
+                <div class="row-2"><div class="field"><label>Loại</label><select class="input" name="type"><option value="in">Nhập kho (+)</option><option value="out">Xuất / hủy (−)</option></select></div><div class="field"><label>Số lượng</label><input class="input" name="qty" type="number" min="1" value="10"></div></div>
+                <div class="field"><label>Lý do</label><input class="input" name="reason" placeholder="VD: Nhập lô tháng 11, hàng lỗi…"></div>
+                <div class="modal-actions"><button class="btn">Lưu</button><button type="button" class="btn btn-outline" data-close>Hủy</button></div></form>`);
+            $("#sf", m.el).onsubmit = (e) => {
+              e.preventDefault();
+              const f = e.target;
+              if (!UI.validate(f, { qty: [(x) => (/^\d+$/.test(x) && +x > 0 ? "" : "Số lượng phải là số nguyên dương.")], reason: [UI.V.required("lý do")] })) return;
+              const r = Store.adjustStock(v.sku, (f.type.value === "in" ? 1 : -1) * +f.qty.value, f.reason.value.trim());
+              if (!r.ok) return UI.toast(r.error, "error");
+              m.close(); UI.toast("Đã cập nhật tồn kho."); draw();
+            };
+          }));
+        };
+        $("#iq").oninput = draw; $("#low").onchange = draw;
+        draw();
+      },
+
+      // ---------- UC18 Voucher & khuyến mãi ----------
+      vouchers() {
+        const t = Store.today();
+        const state = (v) => (!v.active ? ["Đã tắt", ""] : t > v.end ? ["Hết hạn", ""] : v.used >= v.limit ? ["Hết lượt", ""] : t < v.start ? ["Chưa bắt đầu", "s-confirmed"] : ["Đang chạy", "s-delivered"]);
+        app.innerHTML = `
+          <div class="panel">
+            <div style="display:flex;justify-content:space-between;align-items:center"><h3>Mã ưu đãi</h3><button class="btn" id="vadd">+ Tạo voucher</button></div>
+            <table class="table"><thead><tr><th>Mã</th><th>Ưu đãi</th><th>Đơn tối thiểu</th><th>Thời gian</th><th>Đã dùng</th><th>Trạng thái</th><th></th></tr></thead><tbody>${Store.db.vouchers.map((v) => { const [l, c] = state(v); return `
+              <tr><td><b>${v.code}</b><div class="small muted">${esc(v.desc)}</div></td><td>${v.type === "percent" ? `${v.value}%${v.maxDiscount ? ` (tối đa ${fmt(v.maxDiscount)})` : ""}` : fmt(v.value)}</td><td>${fmt(v.minOrder)}</td>
+              <td class="small">${v.start.split("-").reverse().join("/")} – ${v.end.split("-").reverse().join("/")}</td><td>${v.used}/${v.limit}</td><td><span class="status ${c}">${l}</span></td>
+              <td style="white-space:nowrap"><button class="link small" data-v="${v.code}">Sửa</button> · <button class="link small" data-x="${v.code}">${v.active ? "Tắt" : "Bật"}</button></td></tr>`; }).join("")}</tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Khuyến mãi tự động theo sản phẩm</h3>
+            <p class="small muted">Giảm trực tiếp trên giá bán, hiển thị nhãn "Giảm x%" trên cửa hàng. Có thể dùng chung với mã ưu đãi.</p>
+            <table class="table"><thead><tr><th>Sản phẩm</th><th>Dòng</th><th style="width:160px">Giảm (%)</th></tr></thead><tbody>${Store.products({ all: true }).map((p) => `<tr><td>${esc(p.name)}</td><td>${esc(p.collection)}</td><td><input class="input" type="number" min="0" max="50" value="${p.sale || 0}" data-sale="${p.id}" style="height:36px"></td></tr>`).join("")}</tbody></table>
+          </div>`;
+        $("#vadd").onclick = () => editVoucher(null);
+        $$("[data-v]").forEach((b) => (b.onclick = () => editVoucher(Store.db.vouchers.find((v) => v.code === b.dataset.v))));
+        $$("[data-x]").forEach((b) => (b.onclick = () => { const v = Store.db.vouchers.find((x) => x.code === b.dataset.x); Store.saveVoucher({ ...v, active: !v.active }); VIEWS.vouchers(); }));
+        $$("[data-sale]").forEach((i) => (i.onchange = () => {
+          const n = Math.round(+i.value);
+          if (!(n >= 0 && n <= 50)) { UI.toast("Mức giảm phải từ 0 đến 50%.", "error"); i.value = Store.product(i.dataset.sale).sale; return; }
+          const p = Store.product(i.dataset.sale); p.sale = n; Store.saveProduct(p); UI.toast(`Đã cập nhật giảm giá ${p.name}: ${n}%.`);
+        }));
+      },
+    };
+
+    function openOrder(code, after) {
+      const o = Store.order(code);
+      const next = Store.NEXT_STATUS[o.status];
+      const labels = { confirmed: "Xác nhận đơn", shipping: "Bắt đầu giao hàng", delivered: "Đã giao thành công", failed: "Giao hàng thất bại" };
+      const m = UI.modal(`${UI.orderDetail(o).replaceAll('src="assets/', 'src="../assets/')}
+        ${o.customer.note ? `<p class="small"><b>Ghi chú của khách:</b> ${esc(o.customer.note)}</p>` : ""}
+        <div class="modal-actions">${next.map((s) => `<button class="btn ${s === "failed" ? "btn-outline" : ""}" data-n="${s}">${labels[s]}</button>`).join("")}<button class="btn btn-outline" data-close>Đóng</button></div>`, { wide: true });
+      $$("[data-n]", m.el).forEach((b) => (b.onclick = async () => {
+        const s = b.dataset.n;
+        const warn = s === "failed" ? " Số lượng sản phẩm sẽ được hoàn lại kho." : "";
+        if (!(await UI.confirmBox(`${labels[s]}?`, `Chuyển đơn ${o.code} sang "${Store.statusLabel(s)}".${warn}`, labels[s]))) return;
+        const r = Store.updateOrderStatus(o.code, s);
+        if (!r.ok) return UI.toast(r.error, "error");
+        m.close(); UI.toast(`Đơn ${o.code}: ${Store.statusLabel(s)}.`); after(); openOrder(code, after);
+      }));
+    }
+
+    function editProduct(p, after) {
+      const isNew = !p;
+      p = p ? JSON.parse(JSON.stringify(p)) : { id: "", name: "", kind: "Dầu gội", line: "", collection: "", needs: [], hair: [], short: "", description: "", sale: 0, active: false, variants: [{ sku: "", size: "250 ml", price: 0, stock: 0, images: [] }] };
+      const allNeeds = [...new Set(Store.db.products.flatMap((x) => x.needs))].sort();
+      const allHair = [...new Set(Store.db.products.flatMap((x) => x.hair))].sort();
+      const m = UI.modal(`
+        <h3>${isNew ? "Thêm sản phẩm" : "Sửa sản phẩm"}</h3>
+        <form id="ef" novalidate>
+          <div class="row-2"><div class="field"><label>Tên sản phẩm</label><input class="input" name="name" value="${esc(p.name)}"></div><div class="field"><label>Loại</label><input class="input" name="kind" value="${esc(p.kind)}" list="kinds"><datalist id="kinds"><option>Dầu gội</option><option>Dầu xả</option><option>Bánh gội</option><option>Mặt nạ</option><option>Dầu dưỡng</option><option>Combo</option></datalist></div></div>
+          <div class="row-2"><div class="field"><label>Dòng sản phẩm</label><input class="input" name="collection" value="${esc(p.collection)}" list="cols"><datalist id="cols">${[...new Set(Store.db.products.map((x) => x.collection))].map((c) => `<option>${esc(c)}</option>`).join("")}</datalist></div><div class="field"><label>Giảm giá tự động (%)</label><input class="input" name="sale" type="number" min="0" max="50" value="${p.sale}"></div></div>
+          <div class="field"><label>Mô tả ngắn</label><input class="input" name="short" value="${esc(p.short)}"></div>
+          <div class="field"><label>Mô tả chi tiết</label><textarea class="input" name="description" rows="3">${esc(p.description)}</textarea></div>
+          <div class="row-2"><fieldset style="border:0;padding:0"><div class="eyebrow">Nhu cầu</div>${allNeeds.map((n) => `<label class="check"><input type="checkbox" name="needs" value="${esc(n)}" ${p.needs.includes(n) ? "checked" : ""}> ${esc(n)}</label>`).join("")}</fieldset>
+          <fieldset style="border:0;padding:0"><div class="eyebrow">Loại tóc</div>${allHair.map((n) => `<label class="check"><input type="checkbox" name="hair" value="${esc(n)}" ${p.hair.includes(n) ? "checked" : ""}> ${esc(n)}</label>`).join("")}</fieldset></div>
+          <div class="eyebrow" style="margin-top:12px">Dung tích & giá</div>
+          <table class="table" id="vt"><thead><tr><th>SKU</th><th>Dung tích</th><th>Giá gốc (₫)</th><th>Ảnh (đường dẫn)</th><th></th></tr></thead><tbody></tbody></table>
+          <button type="button" class="link small" id="addv">+ Thêm dung tích</button>
+          <p class="small muted">Tồn kho được điều chỉnh ở mục Tồn kho. Dung tích mới bắt đầu với tồn 0.${isNew ? " Sản phẩm mới được tạo ở trạng thái Ngừng bán; nhập kho và thêm ảnh xong hãy bấm Mở bán." : ""}</p>
+          <div class="modal-actions"><button class="btn">Lưu sản phẩm</button><button type="button" class="btn btn-outline" data-close>Hủy</button></div>
+        </form>`, { wide: true });
+      const tbody = $("#vt tbody", m.el);
+      const drawV = () => {
+        tbody.innerHTML = p.variants.map((v, i) => `<tr><td><input class="input" data-i="${i}" data-f="sku" value="${esc(v.sku)}" ${v.sku && !isNew && Store.findVariant(v.sku) ? "readonly" : ""} style="height:36px;width:110px"></td><td><input class="input" data-i="${i}" data-f="size" value="${esc(v.size)}" style="height:36px;width:100px"></td><td><input class="input" data-i="${i}" data-f="price" type="number" min="1000" step="1000" value="${v.price}" style="height:36px;width:130px"></td><td><input class="input" data-i="${i}" data-f="images" value="${esc(v.images.join(", "))}" placeholder="assets/img/products/..." style="height:36px"></td><td>${p.variants.length > 1 && !(Store.findVariant(v.sku)) ? `<button type="button" class="link small" data-rm="${i}">Xóa</button>` : ""}</td></tr>`).join("");
+        $$("[data-f]", tbody).forEach((inp) => (inp.oninput = () => { const v = p.variants[+inp.dataset.i]; const f = inp.dataset.f; v[f] = f === "price" ? +inp.value : f === "images" ? inp.value.split(",").map((s) => s.trim()).filter(Boolean) : inp.value.trim(); }));
+        $$("[data-rm]", tbody).forEach((b) => (b.onclick = () => { p.variants.splice(+b.dataset.rm, 1); drawV(); }));
+      };
+      drawV();
+      $("#addv", m.el).onclick = () => { p.variants.push({ sku: "", size: "", price: 0, stock: 0, images: [] }); drawV(); };
+      $("#ef", m.el).onsubmit = (e) => {
+        e.preventDefault();
+        const f = e.target;
+        const ok = UI.validate(f, { name: [UI.V.required("tên sản phẩm")], kind: [UI.V.required("loại")], collection: [UI.V.required("dòng sản phẩm")], short: [UI.V.required("mô tả ngắn")], sale: [(v) => (+v >= 0 && +v <= 50 ? "" : "Từ 0 đến 50%.")] });
+        if (!ok) return;
+        const skus = p.variants.map((v) => v.sku);
+        const bad = p.variants.find((v) => !v.sku || !v.size || !(v.price >= 1000));
+        if (bad) return UI.toast("Mỗi dung tích cần có SKU, tên dung tích và giá từ 1.000 ₫.", "error");
+        if (new Set(skus).size !== skus.length || p.variants.some((v) => { const f2 = Store.findVariant(v.sku); return f2 && f2.p.id !== p.id; })) return UI.toast("SKU bị trùng với sản phẩm khác.", "error");
+        Object.assign(p, { name: f.name.value.trim(), kind: f.kind.value.trim(), collection: f.collection.value.trim(), short: f.short.value.trim(), description: f.description.value.trim() || f.short.value.trim(), sale: Math.round(+f.sale.value), needs: $$("[name=needs]:checked", f).map((x) => x.value), hair: $$("[name=hair]:checked", f).map((x) => x.value) });
+        if (isNew) { p.id = (p.kind + "-" + p.name).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36); p.line = p.name.split(" ")[0].toUpperCase(); p.createdAt = Store.today(); }
+        Store.saveProduct(p);
+        m.close(); UI.toast(isNew ? "Đã thêm sản phẩm." : "Đã lưu sản phẩm."); after();
+      };
+    }
+
+    function editVoucher(v) {
+      const isNew = !v;
+      v = v || { code: "", type: "percent", value: 10, minOrder: 500000, maxDiscount: 100000, start: Store.today(), end: Store.today(), limit: 100, used: 0, active: true, desc: "" };
+      const m = UI.modal(`
+        <h3>${isNew ? "Tạo voucher" : "Sửa voucher " + v.code}</h3>
+        <form id="vf" novalidate>
+          <div class="row-2"><div class="field"><label>Mã</label><input class="input" name="code" value="${esc(v.code)}" ${isNew ? "" : "readonly"} style="text-transform:uppercase" placeholder="VD: TET2027"></div><div class="field"><label>Loại giảm</label><select class="input" name="type"><option value="percent" ${v.type === "percent" ? "selected" : ""}>Phần trăm (%)</option><option value="amount" ${v.type === "amount" ? "selected" : ""}>Số tiền (₫)</option></select></div></div>
+          <div class="row-2"><div class="field"><label>Mức giảm</label><input class="input" name="value" type="number" min="1" value="${v.value}"></div><div class="field"><label>Giảm tối đa (₫, 0 = không giới hạn)</label><input class="input" name="maxDiscount" type="number" min="0" value="${v.maxDiscount}"></div></div>
+          <div class="row-2"><div class="field"><label>Đơn tối thiểu (₫)</label><input class="input" name="minOrder" type="number" min="0" value="${v.minOrder}"></div><div class="field"><label>Số lượt</label><input class="input" name="limit" type="number" min="1" value="${v.limit}"></div></div>
+          <div class="row-2"><div class="field"><label>Bắt đầu</label><input class="input" name="start" type="date" value="${v.start}"></div><div class="field"><label>Kết thúc</label><input class="input" name="end" type="date" value="${v.end}"></div></div>
+          <div class="field"><label>Mô tả hiển thị cho khách</label><input class="input" name="desc" value="${esc(v.desc)}"></div>
+          <div class="modal-actions"><button class="btn">Lưu voucher</button><button type="button" class="btn btn-outline" data-close>Hủy</button></div>
+        </form>`, { wide: true });
+      $("#vf", m.el).onsubmit = (e) => {
+        e.preventDefault();
+        const f = e.target;
+        const ok = UI.validate(f, {
+          code: [UI.V.required("mã"), (x) => (/^[A-Za-z0-9]{4,20}$/.test(x) ? "" : "4–20 ký tự chữ hoặc số, không dấu cách.")],
+          value: [(x) => (+x > 0 ? "" : "Mức giảm phải lớn hơn 0."), (x) => (f.type.value === "percent" && +x > 100 ? "Tối đa 100%." : ""), (x) => (f.type.value === "amount" && +x >= +f.minOrder.value ? "Số tiền giảm phải nhỏ hơn đơn tối thiểu." : "")],
+          limit: [(x) => (+x >= v.used && +x > 0 ? "" : `Số lượt phải ≥ ${Math.max(1, v.used)} (đã dùng).`)],
+          end: [(x) => (x >= f.start.value ? "" : "Ngày kết thúc phải sau ngày bắt đầu.")],
+          desc: [UI.V.required("mô tả")],
+        });
+        if (!ok) return;
+        const r = Store.saveVoucher({ ...v, code: f.code.value.trim().toUpperCase(), type: f.type.value, value: +f.value.value, maxDiscount: +f.maxDiscount.value, minOrder: +f.minOrder.value, limit: +f.limit.value, start: f.start.value, end: f.end.value, desc: f.desc.value.trim() }, isNew);
+        if (!r.ok) return UI.toast(r.error, "error");
+        m.close(); UI.toast("Đã lưu voucher."); VIEWS.vouchers();
+      };
+    }
+
+    if (admin) route();
+  </script>
+</body>
+</html>

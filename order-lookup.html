@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tra cứu đơn hàng – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container" style="max-width:820px;padding-top:48px;padding-bottom:96px">
+    <div style="text-align:center">
+      <h1>Tra cứu đơn hàng</h1>
+      <p class="muted">Dành cho đơn đặt không cần tài khoản. Nhập mã đơn và email bạn đã dùng khi đặt hàng.</p>
+    </div>
+    <form id="form" class="auth" style="margin:24px auto" novalidate>
+      <div class="field"><label for="code">Mã đơn hàng</label><input class="input" id="code" name="code" placeholder="DV-YYMMDD-NNNN" style="text-transform:uppercase"></div>
+      <div class="field"><label for="email">Email đã dùng khi đặt hàng</label><input class="input" id="email" name="email" type="email"></div>
+      <button class="btn btn-block">Tra cứu</button>
+      <p class="small muted">Mã đơn có trong email hóa đơn, dạng DV-YYMMDD-NNNN. Nếu có tài khoản, bạn xem đơn trong <a href="account.html?tab=orders">Tài khoản › Lịch sử đơn hàng</a>.</p>
+    </form>
+    <div id="result"></div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    UI.header("lookup");
+    UI.footer();
+    const form = UI.$("#form");
+    // Điền sẵn đơn vừa đặt trong phiên (nếu có) để khách không phải gõ lại
+    const last = Store.order(UI.qs("code") || sessionStorage.getItem("davines_last_order") || "");
+    if (last && sessionStorage.getItem("davines_last_order") === last.code) { form.code.value = last.code; form.email.value = last.customer.email; }
+
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const { V } = UI;
+      if (!UI.validate(form, { code: [V.required("mã đơn hàng"), (v) => (/^DV-\d{6}-\d{4}$/i.test(v) ? "" : "Mã đơn không đúng định dạng DV-YYMMDD-NNNN.")], email: [V.required("email"), V.email] })) return;
+      const o = Store.lookupOrder(form.code.value, form.email.value);
+      UI.$("#result").innerHTML = o
+        ? `<div class="eyebrow" style="margin-bottom:10px">Kết quả tra cứu</div><div class="box">${UI.orderDetail(o)}</div>`
+        : `<div class="empty"><h3>Không tìm thấy đơn hàng</h3><p class="muted">Kiểm tra lại mã đơn và email. Mã đơn và email phải khớp với thông tin lúc đặt hàng.</p></div>`;
+    };
+    if (form.code.value && UI.qs("code")) form.requestSubmit();
+  </script>
+</body>
+</html>

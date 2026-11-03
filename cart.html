@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giỏ hàng – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-head">
+      <div class="crumbs"><a href="index.html">Trang chủ</a> / Giỏ hàng</div>
+      <h1>Giỏ hàng</h1>
+    </div>
+    <div id="app"></div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    UI.header("cart");
+    UI.footer();
+    const { fmt } = Store;
+    const app = UI.$("#app");
+
+    function render() {
+      const lines = Store.cart();
+      if (!lines.length) {
+        app.innerHTML = `<div class="empty" style="margin-bottom:72px"><h2>Giỏ hàng đang trống</h2><p class="muted">Khám phá sản phẩm phù hợp với mái tóc của bạn.</p><a class="btn" href="products.html">Tiếp tục mua sắm</a></div>`;
+        return;
+      }
+      const t = Store.calcTotals(lines, null);
+      const unavailable = lines.filter((l) => l.unavailable).length;
+      const user = Store.currentUser();
+      app.innerHTML = `
+        <div class="cart-layout">
+          <div>
+            <table class="cart-table">
+              <thead><tr><th>Sản phẩm</th><th style="width:150px">Số lượng</th><th style="width:140px;text-align:right">Thành tiền</th></tr></thead>
+              <tbody>${lines.map((l) => `
+                <tr>
+                  <td>
+                    <div class="cart-item ${l.unavailable ? "unavailable" : ""}">
+                      <a class="thumb" href="product.html?id=${l.productId}&sku=${l.sku}">${l.image ? `<img src="${UI.esc(l.image)}" alt="">` : ""}</a>
+                      <div>
+                        ${l.unavailable ? `<span class="badge">Không khả dụng</span>` : ""}
+                        <div class="eyebrow">${UI.esc(l.collection || "")}</div>
+                        <h4><a href="product.html?id=${l.productId}&sku=${l.sku}" style="text-decoration:none">${UI.esc(l.name || "Sản phẩm")}</a></h4>
+                        <div class="small muted">Dung tích: ${UI.esc(l.size || "")}</div>
+                        <div class="small muted">Đơn giá: ${fmt(l.price)}${l.sale ? ` (đang giảm ${l.sale}%)` : ""}</div>
+                        ${l.unavailable ? `<div class="small" style="color:var(--c-error)">${UI.esc(l.reason)}</div>` : ""}
+                        ${l.adjusted ? `<div class="small" style="color:var(--c-warning)">Chỉ còn ${l.qty} sản phẩm, số lượng đã được điều chỉnh.</div>` : ""}
+                        <button class="link small" data-remove="${l.sku}">Xóa</button>
+                      </div>
+                    </div>
+                  </td>
+                  <td>${l.unavailable ? "—" : `<div class="qty" style="width:120px"><button data-dec="${l.sku}" aria-label="Giảm">−</button><input value="${l.qty}" data-qty="${l.sku}" type="number" min="1" aria-label="Số lượng"><button data-inc="${l.sku}" aria-label="Tăng">+</button></div>`}</td>
+                  <td style="text-align:right"><b>${l.unavailable ? "—" : fmt(l.total)}</b></td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+            <p><a class="link" href="products.html">‹ Tiếp tục mua sắm</a></p>
+          </div>
+          <aside class="summary">
+            <h3>Tóm tắt giỏ hàng</h3>
+            <div class="line"><span>Tạm tính (${t.count} sản phẩm)</span><b>${fmt(t.subtotal)}</b></div>
+            ${unavailable ? `<div class="small muted">Không tính ${unavailable} sản phẩm không khả dụng.</div>` : ""}
+            <hr>
+            <div class="small muted">Phí giao hàng và mã ưu đãi được tính ở bước đặt hàng. Miễn phí giao hàng cho đơn từ ${fmt(Store.RULES.freeShipFrom)} sau giảm giá.</div>
+            <a class="btn btn-block" style="margin-top:18px" href="checkout.html" ${t.count ? "" : "aria-disabled='true' onclick='return false'"}>Tiến hành đặt hàng</a>
+            ${user ? "" : `<p class="small muted" style="margin-top:14px">Giỏ hàng khi chưa đăng nhập chỉ được giữ trong lần truy cập này. <a href="login.html?next=cart.html">Đăng nhập</a> để lưu giỏ hàng.</p>`}
+          </aside>
+        </div>`;
+
+      UI.$$("[data-remove]").forEach((b) => (b.onclick = async () => {
+        const l = lines.find((x) => x.sku === b.dataset.remove);
+        if (await UI.confirmBox("Xóa sản phẩm?", `Xóa ${l.name || "sản phẩm"} ${l.size || ""} khỏi giỏ hàng?`, "Xóa")) { Store.removeFromCart(l.sku); render(); }
+      }));
+      const limitOf = (sku) => Math.min(Store.RULES.maxPerVariant, Store.findVariant(sku).v.stock);
+      const change = (sku, n) => {
+        const lim = limitOf(sku);
+        if (n > lim) UI.toast(`Tối đa ${lim} sản phẩm cho dung tích này.`, "error");
+        Store.setQty(sku, n); render();
+      };
+      UI.$$("[data-dec]").forEach((b) => (b.onclick = () => change(b.dataset.dec, lines.find((x) => x.sku === b.dataset.dec).qty - 1)));
+      UI.$$("[data-inc]").forEach((b) => (b.onclick = () => change(b.dataset.inc, lines.find((x) => x.sku === b.dataset.inc).qty + 1)));
+      UI.$$("[data-qty]").forEach((i) => (i.onchange = () => change(i.dataset.qty, parseInt(i.value, 10) || 1)));
+    }
+    render();
+  </script>
+</body>
+</html>

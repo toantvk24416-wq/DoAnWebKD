@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đặt hàng thành công – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="checkout-head"><div class="container"><a class="link small" href="index.html">‹ Về trang chủ</a><a class="logo" href="index.html">davines</a><span style="width:120px"></span></div></div>
+  <main class="container" style="max-width:640px;padding:56px var(--gutter) 96px;text-align:center" id="app"></main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    const { fmt } = Store;
+    const code = UI.qs("code");
+    const o = Store.order(code || "");
+    const user = Store.currentUser();
+    // Chỉ hiện đơn vừa đặt trong phiên này, hoặc đơn của chính thành viên đang đăng nhập
+    const allowed = o && (sessionStorage.getItem("davines_last_order") === o.code || (user && o.userId === user.id));
+    const app = UI.$("#app");
+    if (!allowed) {
+      app.innerHTML = `<h1>Không tìm thấy đơn hàng</h1><p class="muted">Bạn có thể tra cứu đơn bằng mã đơn và email đã dùng khi đặt.</p><a class="btn" href="order-lookup.html">Tra cứu đơn hàng</a>`;
+    } else {
+      app.innerHTML = `
+        <div class="success-icon">✓</div>
+        <h1>Đặt hàng thành công</h1>
+        <p class="muted">Cảm ơn ${UI.esc(o.customer.name)}. Hóa đơn đã được gửi tới ${UI.esc(o.customer.email)}.</p>
+        <div class="summary receipt" style="text-align:left;position:static;margin:24px 0">
+          <div class="kv"><span class="muted">Mã đơn hàng</span><b>${o.code}</b></div>
+          <div class="kv"><span class="muted">Ngày đặt</span><span>${UI.dt(o.createdAt)}</span></div>
+          <div class="kv"><span class="muted">Trạng thái đơn hàng</span>${UI.statusBadge(o.status)}</div>
+          <div class="kv"><span class="muted">Thanh toán</span><span>${UI.PAY[o.payment]}${o.paid ? " · Đã thanh toán" : ""}</span></div>
+          <div class="sep"></div>
+          <div class="kv"><span class="muted">Tạm tính</span><span>${fmt(o.subtotal)}</span></div>
+          ${o.discount ? `<div class="kv"><span class="muted">Giảm giá (${o.voucher})</span><span>−${fmt(o.discount)}</span></div>` : ""}
+          <div class="kv"><span class="muted">Phí giao hàng</span><span>${o.shipping ? fmt(o.shipping) : "Miễn phí"}</span></div>
+          <div class="kv grand"><span>Tổng thanh toán</span><span>${fmt(o.total)}</span></div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <a class="btn btn-outline" href="${user ? `account.html?tab=orders&code=${o.code}` : `order-lookup.html?code=${o.code}`}">${user ? "Xem đơn trong tài khoản" : "Tra cứu đơn hàng"}</a>
+          <a class="btn" href="products.html">Tiếp tục mua sắm</a>
+        </div>`;
+    }
+  </script>
+</body>
+</html>

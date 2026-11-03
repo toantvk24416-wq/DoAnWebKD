@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đặt hàng – Davines Việt Nam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="checkout-head"><div class="container"><a class="link small" href="cart.html">‹ Quay lại giỏ hàng</a><a class="logo" href="index.html">davines</a><span style="width:120px"></span></div></div>
+  <main class="container">
+    <div class="page-head"><h1>Đặt hàng</h1></div>
+    <div class="cart-layout">
+      <form id="form" novalidate>
+        <h3>1. Thông tin nhận hàng</h3>
+        <p class="small muted" style="margin-top:-6px">Hóa đơn và thông báo trạng thái đơn được gửi tới email này.</p>
+        <div id="saved"></div>
+        <div class="row-2">
+          <div class="field"><label for="name">Họ và tên người nhận</label><input class="input" id="name" name="name" autocomplete="name"></div>
+          <div class="field"><label for="phone">Số điện thoại</label><input class="input" id="phone" name="phone" autocomplete="tel" inputmode="tel"></div>
+        </div>
+        <div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" autocomplete="email"></div>
+        <div class="row-2">
+          <div class="field"><label for="city">Tỉnh/Thành phố</label><select class="input" id="city" name="city"></select></div>
+          <div class="field"><label for="ward">Phường/Xã</label><select class="input" id="ward" name="ward"></select></div>
+        </div>
+        <div class="field"><label for="line">Địa chỉ chi tiết</label><input class="input" id="line" name="line" placeholder="Số nhà, tên đường" autocomplete="street-address"></div>
+        <div class="field"><label for="note">Ghi chú (không bắt buộc)</label><textarea class="input" id="note" name="note" rows="2" maxlength="200"></textarea></div>
+
+        <h3 style="margin-top:28px">2. Phương thức thanh toán</h3>
+        <label class="pay-opt" id="opt-cod"><input type="radio" name="payment" value="cod"><div><b>Thanh toán khi nhận hàng (COD)</b><div class="small muted">Áp dụng cho đơn có tổng thanh toán đến <span id="cod-limit"></span>.</div></div></label>
+        <label class="pay-opt" id="opt-vnpay"><input type="radio" name="payment" value="vnpay"><div><b>Thanh toán trực tuyến qua VNPay</b><div class="small muted">Hàng được giữ <span id="hold"></span> phút trong lúc bạn thanh toán. Đơn chỉ được tạo khi thanh toán thành công.</div></div></label>
+      </form>
+
+      <aside class="summary" id="summary"></aside>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    const { fmt, RULES } = Store;
+    const form = UI.$("#form");
+    let voucherCode = null;
+    let shownTotal = null; // số tiền đang hiện cho khách
+    let lines = Store.cart();
+    if (!lines.some((l) => !l.unavailable)) location.replace("cart.html");
+
+    UI.$("#cod-limit").textContent = fmt(RULES.codLimit);
+    UI.$("#hold").textContent = RULES.vnpayHoldMinutes;
+    UI.fillPlaces(form.city, form.ward);
+
+    // Thành viên: điền sẵn từ tài khoản và cho chọn địa chỉ đã lưu
+    const user = Store.currentUser();
+    if (user) {
+      form.email.value = user.email;
+      form.email.readOnly = true; // đơn của thành viên luôn gửi hóa đơn về email tài khoản để tra cứu khớp
+      const fillAddr = (a) => { form.name.value = a.name; form.phone.value = a.phone; UI.fillPlaces(form.city, form.ward, a.city, a.ward); form.line.value = a.line; };
+      const def = user.addresses.find((a) => a.isDefault) || user.addresses[0];
+      if (def) fillAddr(def); else { form.name.value = user.name; form.phone.value = user.phone; }
+      if (user.addresses.length > 1) {
+        UI.$("#saved").innerHTML = `<div class="field"><label>Địa chỉ đã lưu</label><select class="input" id="addr">${user.addresses.map((a) => `<option value="${a.id}" ${a === def ? "selected" : ""}>${UI.esc(a.name)} – ${UI.esc(a.line)}, ${UI.esc(a.ward)}</option>`).join("")}</select></div>`;
+        UI.$("#addr").onchange = (e) => fillAddr(user.addresses.find((a) => a.id === e.target.value));
+      }
+    } else {
+      UI.$("#saved").innerHTML = `<p class="small">Đã có tài khoản? <a href="login.html?next=checkout.html">Đăng nhập</a> để dùng địa chỉ đã lưu và theo dõi đơn dễ hơn.</p>`;
+    }
+
+    function totals() { return Store.calcTotals(lines, voucherCode); }
+
+    function renderSummary() {
+      const t = totals();
+      shownTotal = t.total;
+      const ok = lines.filter((l) => !l.unavailable);
+      const bad = lines.filter((l) => l.unavailable);
+      // COD bị khóa khi tổng vượt hạn mức -> tự chuyển sang VNPay
+      const codAllowed = t.total <= RULES.codLimit;
+      UI.$("#opt-cod").classList.toggle("disabled", !codAllowed);
+      form.querySelector("[value=cod]").disabled = !codAllowed;
+      if (!form.payment.value || (!codAllowed && form.payment.value === "cod")) form.querySelector(`[value=${codAllowed ? "cod" : "vnpay"}]`).checked = true;
+      UI.$$(".pay-opt").forEach((o) => o.classList.toggle("on", o.querySelector("input").checked));
+
+      UI.$("#summary").innerHTML = `
+        <h3>Đơn hàng của bạn</h3>
+        <div class="mini-items">${ok.map((l) => `<div class="it"><div class="thumb">${l.image ? `<img src="${UI.esc(l.image)}" alt="">` : ""}</div><div>${UI.esc(l.name)}<div class="small muted">${UI.esc(l.size)} × ${l.qty}</div></div><span>${fmt(l.total)}</span></div>`).join("")}</div>
+        ${bad.length ? `<p class="small muted">${bad.length} sản phẩm không khả dụng trong giỏ (${bad.map((b) => UI.esc(b.name || "")).join(", ")}) không được đưa vào đơn và vẫn nằm lại trong giỏ.</p>` : ""}
+        <hr>
+        <div class="line"><span>Mã ưu đãi</span>${t.voucher ? `<span><b>${t.voucher}</b> <button class="link small" id="rm-v">Bỏ</button></span>` : `<button class="link" id="pick-v">Chọn hoặc nhập mã ›</button>`}</div>
+        <hr>
+        <div class="line"><span>Tạm tính</span><span>${fmt(t.subtotal)}</span></div>
+        ${t.discount ? `<div class="line"><span>Giảm giá (${t.voucher})</span><span>−${fmt(t.discount)}</span></div>` : ""}
+        <div class="line"><span>Phí giao hàng</span>${t.shipping ? `<span>${fmt(t.shipping)}</span>` : `<span class="free">Miễn phí</span>`}</div>
+        <div class="small muted">${t.shipping ? `Mua thêm ${fmt(RULES.freeShipFrom - (t.subtotal - t.discount))} để được miễn phí giao hàng.` : `Miễn phí vì đơn từ ${fmt(RULES.freeShipFrom)} sau giảm giá.`} Mã ưu đãi không trừ vào phí giao hàng.</div>
+        <div class="line total"><span>Tổng thanh toán</span><b>${fmt(t.total)}</b></div>
+        ${!codAllowed ? `<div class="small" style="color:var(--c-warning)">Đơn trên ${fmt(RULES.codLimit)} chỉ thanh toán được qua VNPay.</div>` : ""}
+        <button class="btn btn-block" id="place" style="margin-top:14px">Đặt hàng</button>
+        <p class="small muted">Số tiền trên là số tiền bạn phải trả, đã cập nhật theo giá, tồn kho và mã ưu đãi mới nhất. Đơn hàng đã đặt không thể hủy, vui lòng kiểm tra kỹ trước khi đặt.</p>`;
+      if (UI.$("#pick-v")) UI.$("#pick-v").onclick = pickVoucher;
+      if (UI.$("#rm-v")) UI.$("#rm-v").onclick = () => { voucherCode = null; renderSummary(); };
+      UI.$("#place").onclick = place;
+    }
+    form.addEventListener("change", (e) => { if (e.target.name === "payment") renderSummary(); });
+
+    function pickVoucher() {
+      const sub = totals().subtotal;
+      const list = Store.db.vouchers.filter((v) => v.active);
+      const m = UI.modal(`
+        <h3>Chọn mã ưu đãi</h3>
+        <form id="vform" style="display:flex;gap:8px" novalidate><div class="field" style="flex:1;margin:0"><input class="input" name="code" placeholder="Nhập mã ưu đãi" style="text-transform:uppercase"></div><button class="btn">Áp dụng</button></form>
+        <div style="margin-top:16px">${list.map((v) => { const r = Store.checkVoucher(v.code, sub); return `
+          <label class="pay-opt ${r.ok ? "" : "disabled"}"><input type="radio" name="vc" value="${v.code}" ${r.ok ? "" : "disabled"}><div><b>${v.code}</b><div class="small">${UI.esc(v.desc)}</div><div class="small muted">HSD ${v.end.split("-").reverse().join("/")}${r.ok ? ` · Giảm ${fmt(r.discount)}` : ` · ${UI.esc(r.error)}`}</div></div></label>`; }).join("")}</div>
+        <div class="modal-actions"><button class="btn btn-outline" data-close>Đóng</button></div>`, { wide: true });
+      const apply = (code) => {
+        const r = Store.checkVoucher(code, sub);
+        if (!r.ok) { const f = UI.$("#vform .field", m.el); f.classList.add("error"); f.querySelector(".err")?.remove(); f.insertAdjacentHTML("beforeend", `<div class="err">${UI.esc(r.error)}</div>`); return; }
+        voucherCode = r.voucher.code; m.close(); renderSummary(); UI.toast(`Đã áp dụng mã ${voucherCode}: giảm ${fmt(r.discount)}.`);
+      };
+      UI.$("#vform", m.el).onsubmit = (e) => { e.preventDefault(); const c = e.target.code.value.trim(); if (c) apply(c); };
+      UI.$$("[name=vc]", m.el).forEach((r) => (r.onchange = () => apply(r.value)));
+    }
+
+    function customer() {
+      return { name: form.name.value.trim(), phone: form.phone.value.trim(), email: form.email.value.trim(), city: form.city.value, ward: form.ward.value, line: form.line.value.trim(), note: form.note.value.trim() };
+    }
+
+    function place() {
+      const { V } = UI;
+      const valid = UI.validate(form, {
+        name: [V.required("họ tên người nhận")], phone: [V.required("số điện thoại"), V.phone], email: [V.required("email"), V.email],
+        city: [(v) => (v ? "" : "Vui lòng chọn tỉnh/thành phố.")], ward: [(v) => (v ? "" : "Vui lòng chọn phường/xã.")], line: [V.required("địa chỉ chi tiết")],
+      });
+      if (!valid) { UI.$(".field.error .input")?.focus(); return UI.toast("Vui lòng kiểm tra lại thông tin nhận hàng.", "error"); }
+      // Giá/tồn kho đổi kể từ lúc khách xem -> dừng lại, cập nhật tóm tắt để khách xác nhận lại
+      const fresh = Store.cart();
+      const changed = fresh.some((l) => l.adjusted) || Store.calcTotals(fresh, voucherCode).total !== shownTotal;
+      if (changed) return finish(Store.placeOrder({ customer: customer(), voucherCode, payment: form.payment.value, expectedTotal: shownTotal }));
+      if (form.payment.value === "vnpay") return vnpay();
+      finish(Store.placeOrder({ customer: customer(), voucherCode, payment: "cod", expectedTotal: shownTotal }));
+    }
+
+    // Mô phỏng cổng VNPay: chỉ tạo đơn khi khách bấm thanh toán thành công trong thời gian giữ hàng
+    function vnpay() {
+      const t = totals();
+      let left = RULES.vnpayHoldMinutes * 60;
+      const m = UI.modal(`
+        <div style="text-align:center"><div class="eyebrow">Cổng thanh toán VNPay (mô phỏng)</div><h3 style="margin:8px 0">${fmt(t.total)}</h3>
+        <p class="small muted">Đơn hàng Davines Việt Nam · Thời gian giữ hàng còn <b id="cd"></b></p>
+        <div style="width:160px;height:160px;margin:12px auto;background:repeating-conic-gradient(var(--c-brand) 0 25%, #fff 0 50%) 0 0/20px 20px;border:8px solid #fff;outline:1px solid var(--c-border)"></div>
+        <p class="small muted">Quét mã bằng ứng dụng ngân hàng. Đây là bản mô phỏng, chọn kết quả bên dưới.</p></div>
+        <div class="modal-actions"><button class="btn" id="paid">Thanh toán thành công</button><button class="btn btn-outline" id="cancel">Hủy thanh toán</button></div>`, { locked: true });
+      const tick = () => { UI.$("#cd", m.el).textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`; if (left-- <= 0) { stop(); m.close(); UI.toast("Hết thời gian thanh toán. Đơn hàng chưa được tạo.", "error"); } };
+      const timer = setInterval(tick, 1000); const stop = () => clearInterval(timer); tick();
+      UI.$("#paid", m.el).onclick = () => { stop(); m.close(); finish(Store.placeOrder({ customer: customer(), voucherCode, payment: "vnpay", expectedTotal: shownTotal })); };
+      UI.$("#cancel", m.el).onclick = () => { stop(); m.close(); UI.toast("Bạn đã hủy thanh toán VNPay. Đơn hàng chưa được tạo, giỏ hàng vẫn được giữ nguyên.", "error"); };
+    }
+
+    function finish(r) {
+      if (!r.ok) {
+        lines = Store.cart();
+        if (!lines.some((l) => !l.unavailable)) return (location.href = "cart.html");
+        renderSummary();
+        UI.modal(`<h3>Đơn hàng cần kiểm tra lại</h3><p>${UI.esc(r.error)}</p><div class="modal-actions"><button class="btn" data-close>Xem lại đơn hàng</button></div>`);
+        return;
+      }
+      const m = UI.modal(`${UI.receipt(r.order)}<div class="modal-actions"><button class="btn" id="done">Hoàn tất</button></div>`, { locked: true });
+      UI.$("#done", m.el).onclick = () => (location.href = `order-success.html?code=${r.order.code}`);
+    }
+
+    renderSummary();
+  </script>
+</body>
+</html>
