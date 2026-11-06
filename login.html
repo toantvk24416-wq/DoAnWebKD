@@ -4,11 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Đăng nhập – Davines Việt Nam</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <main class="container">
-    <div class="auth" id="app"></div>
+    <div class="auth">
+      <div class="auth-tabs" id="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="customer">Khách hàng</button>
+        <button type="button" role="tab" data-tab="admin">Quản trị</button>
+      </div>
+      <div id="app"></div>
+    </div>
   </main>
 
   <script src="assets/js/data.js"></script>
@@ -18,49 +27,130 @@
     UI.header("account");
     UI.footer();
     const { V } = UI;
-    // Chỉ cho quay lại trang nội bộ, tránh chuyển hướng ra ngoài
-    const nextRaw = UI.qs("next") || "account.html";
-    const next = /^[a-z-]+\.html(\?[\w=&%.-]*)?$/i.test(nextRaw) ? nextRaw : "account.html";
-    if (Store.currentUser()) location.replace(next);
+    // BR-TK11: đăng nhập xong quay về trang người dùng định vào trước đó (chỉ trang thuộc website), nếu không thì về trang chủ.
+    function safeNext(raw) {
+      if (!raw) return "";
+      try {
+        const u = new URL(raw, location.href);
+        const file = u.pathname.split("/").pop();
+        const sameDir = u.pathname.slice(0, u.pathname.lastIndexOf("/")) === location.pathname.slice(0, location.pathname.lastIndexOf("/"));
+        if (u.origin !== location.origin || !sameDir || !/^[a-z-]+\.html$/i.test(file) || file === "login.html") return "";
+        return file + u.search + u.hash;
+      } catch (e) { return ""; }
+    }
+    const next = safeNext(UI.qs("next")) || safeNext(document.referrer) || "index.html";
+    if (Store.currentAdmin()) location.replace("admin/index.html");
+    else if (Store.currentUser()) location.replace(next);
     const app = UI.$("#app");
+    // 2 tab trên cùng một màn hình đăng nhập: Khách hàng (đăng nhập / đăng ký) và Quản trị (chỉ đăng nhập)
+    function setTab(t) {
+      UI.$$("#tabs [data-tab]").forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+    }
+    UI.$$("#tabs [data-tab]").forEach((b) => (b.onclick = () => (b.dataset.tab === "admin" ? adminView() : loginView())));
 
-    function loginView() {
+    function adminView() {
+      setTab("admin");
+      history.replaceState(null, "", "login.html?tab=admin");
+      app.innerHTML = `
+        <h1>Đăng nhập quản trị</h1>
+        <p class="muted">Chỉ dành cho tài khoản quản trị do Davines cấp. Không hỗ trợ tự đăng ký.</p>
+        <form id="f" novalidate>
+          <div class="field"><label for="email">Email quản trị</label><input class="input" id="email" name="email" type="email" autocomplete="username"></div>
+          <div class="field"><label for="pass">Mật khẩu</label><input class="input" id="pass" name="pass" type="password" autocomplete="current-password"></div>
+          <button class="btn btn-block">Đăng nhập quản trị</button>
+        </form>`;
+      const f = UI.$("#f");
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        if (!UI.validate(f, { email: [V.required("email"), V.email], pass: [V.required("mật khẩu")] })) return;
+        const r = Store.adminLogin(f.email.value, f.pass.value);
+        if (!r.ok) { f.pass.value = ""; setErr(f.pass, UI.esc(r.error)); return; }
+        location.href = "admin/index.html";
+      };
+    }
+    const setErr = (input, msg) => { const fld = input.closest(".field"); fld.classList.add("error"); let e = fld.querySelector(".err"); if (!e) { e = document.createElement("div"); e.className = "err"; fld.append(e); } e.innerHTML = msg; };
+
+    function loginView(prefill, notice) {
+      setTab("customer");
+      history.replaceState(null, "", "login.html" + (UI.qs("next") ? "?next=" + encodeURIComponent(UI.qs("next")) : ""));
       app.innerHTML = `
         <h1>Đăng nhập</h1>
         <p class="muted">Đăng nhập để lưu giỏ hàng, địa chỉ và theo dõi đơn hàng.</p>
+        ${notice ? `<div class="box" style="margin-bottom:16px;border-color:var(--c-success, #3c763d)">${notice}</div>` : ""}
         <form id="f" novalidate>
-          <div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" autocomplete="email"></div>
+          <div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" autocomplete="email" value="${UI.esc(prefill || "")}"></div>
           <div class="field"><label for="pass">Mật khẩu</label><input class="input" id="pass" name="pass" type="password" autocomplete="current-password"></div>
           <p style="text-align:right;margin:-6px 0 16px"><button type="button" class="link small" id="forgot">Quên mật khẩu?</button></p>
           <button class="btn btn-block">Đăng nhập</button>
         </form>
         <p style="text-align:center" class="small">Chưa có tài khoản? <button class="link" id="to-reg">Đăng ký</button></p>`;
       const f = UI.$("#f");
+      if (prefill) f.pass.focus();
       f.onsubmit = (e) => {
         e.preventDefault();
         if (!UI.validate(f, { email: [V.required("email"), V.email], pass: [V.required("mật khẩu")] })) return;
-        const r = Store.login(f.email.value, f.pass.value);
-        if (!r.ok) { f.pass.value = ""; const fld = f.pass.closest(".field"); fld.classList.add("error"); fld.querySelector(".err").textContent = r.error; return; }
-        location.href = next;
+        // Lỡ nhập tài khoản quản trị ở tab Khách hàng vẫn vào thẳng trang quản trị
+        const r = Store.signIn(f.email.value, f.pass.value);
+        if (!r.ok) { f.pass.value = ""; setErr(f.pass, UI.esc(r.error)); return; }
+        location.href = r.role === "admin" ? "admin/index.html" : next;
       };
-      UI.$("#to-reg").onclick = registerView;
-      UI.$("#forgot").onclick = () => {
-        const m = UI.modal(`<h3>Quên mật khẩu</h3><p class="muted small">Nhập email tài khoản, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.</p><form id="ff" novalidate><div class="field"><input class="input" name="email" type="email" placeholder="Email"></div><div class="modal-actions"><button class="btn">Gửi liên kết</button><button type="button" class="btn btn-outline" data-close>Đóng</button></div></form>`);
-        UI.$("#ff", m.el).onsubmit = (e) => { e.preventDefault(); if (!UI.validate(e.target, { email: [V.required("email"), V.email] })) return; m.close(); UI.toast("Nếu email đã đăng ký, liên kết đặt lại mật khẩu sẽ được gửi trong vài phút."); };
+      UI.$("#to-reg").onclick = () => registerView();
+      UI.$("#forgot").onclick = () => forgot(f.email.value.trim());
+    }
+
+    // UC07: chỉ gửi liên kết khi email đã đăng ký; chưa đăng ký thì báo "Email chưa được đăng ký".
+    function forgot(email) {
+      const m = UI.modal(`<h3>Quên mật khẩu</h3><p class="muted small">Nhập email tài khoản, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.</p><form id="ff" novalidate><div class="field"><input class="input" name="email" type="email" placeholder="Email" value="${UI.esc(email || "")}"></div><div class="modal-actions"><button class="btn">Gửi liên kết</button><button type="button" class="btn btn-outline" data-close>Đóng</button></div></form>`);
+      UI.$("#ff", m.el).onsubmit = (e) => {
+        e.preventDefault();
+        const ff = e.target;
+        if (!UI.validate(ff, { email: [V.required("email"), V.email] })) return;
+        const r = Store.requestReset(ff.email.value);
+        if (!r.ok) return setErr(ff.email, `${UI.esc(r.error)} <button type="button" class="link small" id="ff-reg">Đăng ký tài khoản</button>`), (UI.$("#ff-reg", m.el).onclick = () => { m.close(); registerView(ff.email.value.trim()); });
+        m.close();
+        // Web tĩnh không có máy chủ gửi mail -> hiển thị email trong "hộp thư mô phỏng" để thử luồng đặt lại mật khẩu.
+        const link = `login.html?reset=${r.token}`;
+        UI.modal(`<h3>Đã gửi liên kết đặt lại mật khẩu</h3><p class="muted small">Liên kết đã được gửi tới <b>${UI.esc(r.email)}</b>, có hiệu lực trong 30 phút.</p>
+          <div class="box small"><div class="eyebrow">Hộp thư (mô phỏng)</div><p><b>Davines Việt Nam – Đặt lại mật khẩu</b></p><p>Bấm vào liên kết sau để đặt mật khẩu mới:</p><a class="link" href="${link}">Đặt lại mật khẩu</a></div>
+          <div class="modal-actions"><button class="btn btn-outline" data-close>Đóng</button></div>`);
       };
     }
 
-    function registerView() {
+    function resetView(token) {
+      setTab("customer");
+      const u = Store.resetInfo(token);
+      if (!u) return loginView("", `<b>Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.</b> Vui lòng yêu cầu liên kết mới.`);
+      app.innerHTML = `
+        <h1>Đặt lại mật khẩu</h1>
+        <p class="muted">Tài khoản: <b>${UI.esc(u.email)}</b></p>
+        <form id="f" novalidate>
+          <div class="field"><label for="pass">Mật khẩu mới</label><input class="input" id="pass" name="pass" type="password" autocomplete="new-password"></div>
+          <div class="field"><label for="pass2">Nhập lại mật khẩu mới</label><input class="input" id="pass2" name="pass2" type="password" autocomplete="new-password"></div>
+          <button class="btn btn-block">Lưu mật khẩu mới</button>
+        </form>`;
+      const f = UI.$("#f");
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        if (!UI.validate(f, { pass: [V.required("mật khẩu mới"), V.password], pass2: [(v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")] })) return;
+        const r = Store.resetPassword(token, f.pass.value);
+        if (!r.ok) return loginView("", UI.esc(r.error));
+        loginView(r.email, "Đã đặt lại mật khẩu. Vui lòng đăng nhập bằng mật khẩu mới.");
+      };
+    }
+
+    function registerView(prefillEmail) {
+      setTab("customer");
       app.innerHTML = `
         <h1>Đăng ký</h1>
         <p class="muted">Tạo tài khoản thành viên Davines.</p>
         <form id="f" novalidate>
           <div class="field"><label for="name">Họ và tên</label><input class="input" id="name" name="name" autocomplete="name"></div>
-          <div class="field"><label for="email">Email (tên đăng nhập)</label><input class="input" id="email" name="email" type="email" autocomplete="email"></div>
+          <div class="field"><label for="email">Email (tên đăng nhập)</label><input class="input" id="email" name="email" type="email" autocomplete="email" value="${UI.esc(prefillEmail || "")}"></div>
           <div class="field"><label for="phone">Số điện thoại</label><input class="input" id="phone" name="phone" autocomplete="tel"></div>
           <div class="field"><label for="pass">Mật khẩu</label><input class="input" id="pass" name="pass" type="password" autocomplete="new-password"></div>
           <div class="field"><label for="pass2">Nhập lại mật khẩu</label><input class="input" id="pass2" name="pass2" type="password" autocomplete="new-password"></div>
-          <label class="check" style="margin-bottom:16px"><input type="checkbox" name="agree"> Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật</label>
+          <div class="field" style="margin-bottom:8px"><label class="check"><input type="checkbox" name="agree"> Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật</label></div>
+          <div class="field" style="margin-bottom:16px"><label class="check"><input type="checkbox" name="promo"> Đồng ý nhận tin khuyến mãi qua email (không bắt buộc)</label></div>
           <button class="btn btn-block">Tạo tài khoản</button>
         </form>
         <p style="text-align:center" class="small">Đã có tài khoản? <button class="link" id="to-login">Đăng nhập</button></p>`;
@@ -70,17 +160,29 @@
         const ok = UI.validate(f, {
           name: [V.required("họ tên")], email: [V.required("email"), V.email], phone: [V.required("số điện thoại"), V.phone],
           pass: [V.required("mật khẩu"), V.password], pass2: [(v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")],
+          agree: [() => (f.agree.checked ? "" : "Vui lòng đồng ý với điều khoản sử dụng.")],
         });
         if (!ok) return;
-        if (!f.agree.checked) return UI.toast("Vui lòng đồng ý với điều khoản sử dụng.", "error");
-        const r = Store.register({ name: f.name.value, email: f.email.value, phone: f.phone.value, pass: f.pass.value });
-        if (!r.ok) { const fld = f[r.field].closest(".field"); fld.classList.add("error"); fld.querySelector(".err").textContent = r.error; return; }
-        location.href = next;
+        const r = Store.register({ name: f.name.value, email: f.email.value, phone: f.phone.value, pass: f.pass.value, promo: f.promo.checked });
+        if (!r.ok) {
+          // BR-TK07 / UC04 EF2: email đã tồn tại -> gợi ý Đăng nhập hoặc Quên mật khẩu
+          setErr(f[r.field], `${UI.esc(r.error)} Bạn có thể <button type="button" class="link small" id="dup-login">Đăng nhập</button> hoặc <button type="button" class="link small" id="dup-forgot">Quên mật khẩu</button>.`);
+          const em = f.email.value.trim();
+          UI.$("#dup-login").onclick = () => loginView(em);
+          UI.$("#dup-forgot").onclick = () => { loginView(em); forgot(em); };
+          return;
+        }
+        // BR-TK04: đăng ký xong không tự đăng nhập -> chuyển sang Đăng nhập, điền sẵn email
+        loginView(r.user.email, "<b>Đăng ký thành công!</b> Vui lòng đăng nhập bằng email và mật khẩu vừa tạo.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
       };
-      UI.$("#to-login").onclick = loginView;
+      UI.$("#to-login").onclick = () => loginView();
     }
 
-    UI.qs("mode") === "register" ? registerView() : loginView();
+    if (UI.qs("reset")) resetView(UI.qs("reset"));
+    else if (UI.qs("tab") === "admin") adminView();
+    else if (UI.qs("mode") === "register") registerView();
+    else loginView();
   </script>
 </body>
 </html>

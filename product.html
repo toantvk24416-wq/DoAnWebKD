@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Chi tiết sản phẩm – Davines Việt Nam</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -11,6 +14,7 @@
 
   <script src="assets/js/data.js"></script>
   <script src="assets/js/store.js"></script>
+  <script src="assets/js/hover-images.js"></script>
   <script src="assets/js/ui.js"></script>
   <script>
     UI.header("products");
@@ -37,6 +41,7 @@
 
       function render() {
         const imgs = images();
+        const hover = imgs[imgIdx] ? UI.hoverImg(p, variant, imgs[imgIdx]) : "";
         const price = Store.unitPrice(p, variant);
         const out = variant.stock <= 0;
         app.innerHTML = `
@@ -46,7 +51,7 @@
           </div>
           <div class="pdp">
             <div class="gallery">
-              <div class="main">${imgs[imgIdx] ? `<img src="${UI.esc(imgs[imgIdx])}" alt="${UI.esc(p.name)} ${UI.esc(variant.size)}">` : ""}</div>
+              <div class="main${hover ? " has-hover" : ""}">${imgs[imgIdx] ? `<img src="${UI.esc(imgs[imgIdx])}" alt="${UI.esc(p.name)} ${UI.esc(variant.size)}">` : ""}${hover ? `<img class="hover-img" src="${UI.esc(hover)}" alt="">` : ""}</div>
               ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((src, i) => `<button class="${i === imgIdx ? "on" : ""}" data-i="${i}" aria-label="Ảnh ${i + 1}"><img src="${UI.esc(src)}" alt=""></button>`).join("")}</div>` : ""}
             </div>
             <div>
@@ -63,7 +68,7 @@
               </div>
               <div class="note">Tối đa ${Store.RULES.maxPerVariant} sản phẩm cho mỗi dung tích.<br>Phí giao hàng ${fmt(Store.RULES.shippingFee)} · Miễn phí cho đơn từ ${fmt(Store.RULES.freeShipFrom)} (sau giảm giá).</div>
               <div class="accordion">
-                <details open><summary>Mô tả</summary><p>${UI.esc(p.description)}.</p></details>
+                <details open><summary>Mô tả</summary><p>${UI.esc(Store.cleanDesc(p.description))}.</p></details>
                 ${p.benefits?.length ? `<details><summary>Công dụng</summary><ul>${p.benefits.map((b) => `<li>${UI.esc(b)}</li>`).join("")}</ul>${p.extra ? `<p>${UI.esc(p.extra)}</p>` : ""}</details>` : ""}
                 <details><summary>Thành phần</summary><p>${p.ingredients ? UI.esc(p.ingredients) : "Vui lòng xem bảng thành phần trên bao bì sản phẩm."}</p>${p.ingredients ? `<p class="small muted">Thông tin có thể thay đổi, vui lòng tham khảo bảng thành phần mới nhất trên bao bì.</p>` : ""}</details>
                 <details><summary>Phù hợp với</summary><p>${[...p.needs, ...p.hair].map((t) => `<span class="tag">${UI.esc(t)}</span>`).join(" ")}</p></details>
