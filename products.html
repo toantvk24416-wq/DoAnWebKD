@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sản phẩm – Davines Việt Nam</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -12,8 +15,8 @@
       <div class="crumbs"><a href="index.html">Trang chủ</a> / Sản phẩm</div>
       <h1 id="title">Tất cả sản phẩm</h1>
       <div class="toolbar">
-        <form id="search-form" style="display:flex;gap:8px;flex:1">
-          <input class="input" name="q" id="q" placeholder="Tìm trong danh mục (2–100 ký tự)" maxlength="100">
+        <form id="search-form" style="display:flex;gap:8px;flex:1" novalidate>
+          <div class="field" style="flex:1;margin:0"><input class="input" name="q" id="q" placeholder="Tìm trong danh mục (2–100 ký tự)" maxlength="100"><div class="err" id="q-err"></div></div>
         </form>
         <div style="display:flex;gap:16px;align-items:center">
           <span class="muted small" id="count"></span>
@@ -41,15 +44,20 @@
 
   <script src="assets/js/data.js"></script>
   <script src="assets/js/store.js"></script>
+  <script src="assets/js/hover-images.js"></script>
   <script src="assets/js/ui.js"></script>
   <script>
     UI.header("products");
     UI.footer();
-    const PER_PAGE = 12;
+    const PER_PAGE = 24; // BR-SP07: 24 sản phẩm mỗi trang
     const all = Store.products();
+    const isScalp = (h) => /^da đầu/i.test(h);
+    const ALL_HAIR = "Mọi loại tóc";
     const GROUPS = [
       { key: "needs", label: "Nhu cầu chăm sóc tóc", values: (p) => p.needs },
-      { key: "hair", label: "Loại tóc", values: (p) => p.hair },
+      // Tách "Loại tóc" và "Tình trạng da đầu" thành 2 nhóm; "Mọi loại tóc" thuộc nhóm Loại tóc
+      { key: "hair", label: "Loại tóc", values: (p) => p.hair.filter((h) => !isScalp(h)) },
+      { key: "scalp", label: "Tình trạng da đầu", values: (p) => p.hair.filter(isScalp) },
       { key: "collection", label: "Dòng sản phẩm", values: (p) => [p.collection] },
       { key: "kind", label: "Loại sản phẩm", values: (p) => [p.kind] },
     ];
@@ -57,13 +65,18 @@
 
     // Trạng thái lọc đọc từ URL -> có thể chia sẻ link, nút Back hoạt động đúng
     const params = new URLSearchParams(location.search);
+    // Từ khóa từ URL (vd. ô tìm trên header): bỏ khoảng trắng; chỉ toàn khoảng trắng / 1 ký tự thì báo lỗi, không tìm
+    const rawQ = params.get("q");
     const state = {
-      q: params.get("q") || "",
+      q: (rawQ || "").trim(),
       sort: params.get("sort") || "new",
       page: +params.get("page") || 1,
       price: params.getAll("price"),
       ...Object.fromEntries(GROUPS.map((g) => [g.key, params.getAll(g.key)])),
     };
+
+    // Link cũ dạng ?hair=Da đầu dầu -> chuyển sang nhóm Tình trạng da đầu
+    state.scalp.push(...state.hair.filter(isScalp)); state.hair = state.hair.filter((h) => !isScalp(h));
 
     function sync() {
       const p = new URLSearchParams();
@@ -99,8 +112,13 @@
       if (state.price.length) list = list.filter(variantInRange);
       if (state.q.length >= 2) { const q = norm(state.q); list = list.filter((p) => norm(`${p.name} ${p.collection} ${p.short} ${p.description}`).includes(q)); }
       const price = (p) => (state.price.length ? Store.unitPrice(p, variantInRange(p)) : Store.priceRange(p).min);
+      // Sản phẩm khớp đúng loại tóc/da đầu đang chọn đứng trước sản phẩm "Mọi loại tóc"
+      const picked = [...state.hair, ...state.scalp].filter((h) => h !== ALL_HAIR);
+      const generic = (p) => (picked.length && !p.hair.some((h) => picked.includes(h)) ? 1 : 0);
       const sorters = { new: (a, b) => (b.createdAt || "").localeCompare(a.createdAt || "") || a.name.localeCompare(b.name), best: (a, b) => (sold[b.id] || 0) - (sold[a.id] || 0), "price-asc": (a, b) => price(a) - price(b), "price-desc": (a, b) => price(b) - price(a), name: (a, b) => a.name.localeCompare(b.name) };
-      return list.sort(sorters[state.sort]);
+      // Hết hàng luôn nằm cuối dù sắp xếp kiểu gì; trong cùng nhóm thì theo tiêu chí đã chọn
+      const out = (p) => (Store.inStock(p) ? 0 : 1);
+      return list.sort((a, b) => out(a) - out(b) || generic(a) - generic(b) || sorters[state.sort](a, b));
     }
 
     function renderFilters() {
@@ -140,12 +158,27 @@
       UI.$$("#pager button").forEach((b) => (b.onclick = () => { state.page = +b.dataset.p; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
     }
 
-    UI.$("#q").value = state.q;
+    UI.$("#q").value = rawQ !== null && UI.keywordError(rawQ) ? rawQ : state.q;
+    if (rawQ !== null && UI.keywordError(rawQ)) { state.q = ""; showQErr(UI.KEYWORD_ERR); }
     UI.$("#sort").value = state.sort;
     UI.$("#sort").onchange = (e) => { state.sort = e.target.value; render(); };
     let timer;
-    UI.$("#q").oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => { const v = e.target.value.trim(); if (v.length === 1) return; state.q = v; state.page = 1; render(); }, 250); };
-    UI.$("#search-form").onsubmit = (e) => e.preventDefault();
+    function showQErr(msg) { UI.$("#q-err").textContent = msg; UI.$("#q").closest(".field").classList.toggle("error", !!msg); }
+    // Gõ: ô rỗng -> bỏ lọc từ khóa; đủ 2 ký tự -> lọc ngay; chỉ khoảng trắng / 1 ký tự -> chờ, báo lỗi khi nhấn Enter
+    UI.$("#q").oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => {
+      const raw = e.target.value, v = raw.trim();
+      if (!raw) { showQErr(""); state.q = ""; state.page = 1; return render(); }
+      if (!raw.trim()) return showQErr(UI.KEYWORD_ERR); // chỉ toàn khoảng trắng
+      if (UI.keywordError(raw)) return;
+      showQErr(""); state.q = v; state.page = 1; render();
+    }, 250); };
+    UI.$("#search-form").onsubmit = (e) => {
+      e.preventDefault(); clearTimeout(timer);
+      const raw = UI.$("#q").value, msg = UI.keywordError(raw);
+      showQErr(msg);
+      if (msg) return;
+      state.q = raw.trim(); state.page = 1; render();
+    };
     UI.$("#filter-toggle").onclick = () => UI.$("#filters").classList.toggle("open");
     renderFilters();
     render();

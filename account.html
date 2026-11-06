@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tài khoản của tôi – Davines Việt Nam</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -48,14 +51,16 @@
               <div class="field"><label>Số điện thoại</label><input class="input" name="phone" value="${UI.esc(u.phone)}"></div>
               <div class="field"><label>Ngày sinh</label><input class="input" name="birthday" type="date" value="${UI.esc(u.birthday)}" max="${Store.today()}"></div>
             </div>
+            <div class="field"><label>Giới tính</label><div style="display:flex;gap:24px">${[["female", "Nữ"], ["male", "Nam"], ["other", "Khác"]].map(([k, l]) => `<label class="check"><input type="radio" name="gender" value="${k}" ${u.gender === k ? "checked" : ""}> ${l}</label>`).join("")}</div></div>
+            <label class="check" style="margin-bottom:16px"><input type="checkbox" name="promo" ${u.promo ? "checked" : ""}> Nhận tin khuyến mãi qua email</label>
             <button class="btn" id="save" disabled>Lưu thay đổi</button>
           </form>`;
         const f = UI.$("#f");
-        f.oninput = () => (UI.$("#save").disabled = false); // chỉ bật nút Lưu khi có thay đổi
+        f.oninput = f.onchange = () => (UI.$("#save").disabled = false); // chỉ bật nút Lưu khi có thay đổi
         f.onsubmit = (e) => {
           e.preventDefault();
           if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], birthday: [(v) => (v && v > Store.today() ? "Ngày sinh không được ở tương lai." : v && v < "1900-01-01" ? "Ngày sinh không hợp lệ." : "")] })) return;
-          Store.updateProfile({ name: f.name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value });
+          Store.updateProfile({ name: f.name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value, gender: f.gender.value, promo: f.promo.checked });
           UI.toast("Đã lưu thông tin cá nhân.");
           nav(); VIEWS.info();
         };
@@ -82,12 +87,14 @@
         const u = Store.currentUser();
         app.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:center"><h2>Địa chỉ</h2><button class="btn btn-outline" id="add">+ Thêm địa chỉ</button></div>
+          <p class="small muted">Đã lưu ${u.addresses.length}/${Store.RULES.maxAddresses} địa chỉ.</p>
           ${u.addresses.length ? u.addresses.map((a) => `
             <div class="addr">
               <div><b>${UI.esc(a.name)}</b> · ${UI.esc(a.phone)} ${a.isDefault ? `<span class="tag">Mặc định</span>` : ""}<div class="muted small">${UI.esc(a.line)}, ${UI.esc(a.ward)}, ${UI.esc(a.city)}</div></div>
               <div style="display:flex;gap:14px;align-items:flex-start">${a.isDefault ? "" : `<button class="link small" data-def="${a.id}">Đặt mặc định</button>`}<button class="link small" data-edit="${a.id}">Sửa</button><button class="link small" data-del="${a.id}">Xóa</button></div>
             </div>`).join("") : `<div class="empty">Bạn chưa lưu địa chỉ nào.</div>`}`;
-        UI.$("#add").onclick = () => editAddress();
+        // BR-DC04: tối đa 10 địa chỉ -> chặn thêm địa chỉ thứ 11
+        UI.$("#add").onclick = () => (u.addresses.length >= Store.RULES.maxAddresses ? UI.toast(`Bạn chỉ lưu được tối đa ${Store.RULES.maxAddresses} địa chỉ. Hãy xóa bớt địa chỉ cũ trước khi thêm mới.`, "error") : editAddress());
         UI.$$("[data-edit]").forEach((b) => (b.onclick = () => editAddress(u.addresses.find((a) => a.id === b.dataset.edit))));
         UI.$$("[data-def]").forEach((b) => (b.onclick = () => { Store.saveAddress({ ...u.addresses.find((a) => a.id === b.dataset.def), isDefault: true }); VIEWS.address(); }));
         UI.$$("[data-del]").forEach((b) => (b.onclick = async () => { if (await UI.confirmBox("Xóa địa chỉ?", "Địa chỉ này sẽ bị xóa khỏi tài khoản.", "Xóa")) { Store.deleteAddress(b.dataset.del); VIEWS.address(); } }));
@@ -120,7 +127,8 @@
       f.onsubmit = (e) => {
         e.preventDefault();
         if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], city: [(v) => (v ? "" : "Vui lòng chọn tỉnh/thành.")], ward: [(v) => (v ? "" : "Vui lòng chọn phường/xã.")], line: [V.required("địa chỉ")] })) return;
-        Store.saveAddress({ id: a?.id, name: f.name.value.trim(), phone: f.phone.value.trim(), city: f.city.value, ward: f.ward.value, line: f.line.value.trim(), isDefault: f.isDefault.checked });
+        const r = Store.saveAddress({ id: a?.id, name: f.name.value.trim(), phone: f.phone.value.trim(), city: f.city.value, ward: f.ward.value, line: f.line.value.trim(), isDefault: f.isDefault.checked });
+        if (r && !r.ok) return UI.toast(r.error, "error");
         m.close(); UI.toast(a ? "Đã cập nhật địa chỉ." : "Đã thêm địa chỉ."); VIEWS.address();
       };
     }

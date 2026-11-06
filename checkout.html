@@ -4,10 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Đặt hàng – Davines Việt Nam</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <div class="checkout-head"><div class="container"><a class="link small" href="cart.html">‹ Quay lại giỏ hàng</a><a class="logo" href="index.html">davines</a><span style="width:120px"></span></div></div>
+  <div class="checkout-head"><div class="container"><a class="link small" href="cart.html">‹ Quay lại giỏ hàng</a><a class="logo" href="index.html" aria-label="Davines – Trang chủ"><img class="logo-img" src="assets/img/logo-davines.svg" alt="davines" width="140" height="41"></a><span style="width:120px"></span></div></div>
   <main class="container">
     <div class="page-head"><h1>Đặt hàng</h1></div>
     <div class="cart-layout">
@@ -67,7 +70,9 @@
       UI.$("#saved").innerHTML = `<p class="small">Đã có tài khoản? <a href="login.html?next=checkout.html">Đăng nhập</a> để dùng địa chỉ đã lưu và theo dõi đơn dễ hơn.</p>`;
     }
 
-    function totals() { return Store.calcTotals(lines, voucherCode); }
+    // Người mua hiện tại (tài khoản / SĐT) để kiểm tra mã chỉ dành cho đơn đầu tiên như WELCOME15
+    function who() { return { userId: user ? user.id : null, phone: form.phone.value.trim() }; }
+    function totals() { return Store.calcTotals(lines, voucherCode, who()); }
 
     function renderSummary() {
       const t = totals();
@@ -100,7 +105,11 @@
       if (UI.$("#rm-v")) UI.$("#rm-v").onclick = () => { voucherCode = null; renderSummary(); };
       UI.$("#place").onclick = place;
     }
-    form.addEventListener("change", (e) => { if (e.target.name === "payment") renderSummary(); });
+    form.addEventListener("change", (e) => {
+      if (e.target.name === "payment") renderSummary();
+      // Đổi SĐT mà mã đang dùng không còn hợp lệ (vd. SĐT đã từng mua) -> gỡ mã và báo
+      if (e.target.name === "phone" && voucherCode) { const t = totals(); if (t.voucherError) { UI.toast(`Mã ${voucherCode}: ${t.voucherError}`, "error"); voucherCode = null; renderSummary(); } }
+    });
 
     function pickVoucher() {
       const sub = totals().subtotal;
@@ -108,11 +117,11 @@
       const m = UI.modal(`
         <h3>Chọn mã ưu đãi</h3>
         <form id="vform" style="display:flex;gap:8px" novalidate><div class="field" style="flex:1;margin:0"><input class="input" name="code" placeholder="Nhập mã ưu đãi" style="text-transform:uppercase"></div><button class="btn">Áp dụng</button></form>
-        <div style="margin-top:16px">${list.map((v) => { const r = Store.checkVoucher(v.code, sub); return `
+        <div style="margin-top:16px">${list.map((v) => { const r = Store.checkVoucher(v.code, sub, who()); return `
           <label class="pay-opt ${r.ok ? "" : "disabled"}"><input type="radio" name="vc" value="${v.code}" ${r.ok ? "" : "disabled"}><div><b>${v.code}</b><div class="small">${UI.esc(v.desc)}</div><div class="small muted">HSD ${v.end.split("-").reverse().join("/")}${r.ok ? ` · Giảm ${fmt(r.discount)}` : ` · ${UI.esc(r.error)}`}</div></div></label>`; }).join("")}</div>
         <div class="modal-actions"><button class="btn btn-outline" data-close>Đóng</button></div>`, { wide: true });
       const apply = (code) => {
-        const r = Store.checkVoucher(code, sub);
+        const r = Store.checkVoucher(code, sub, who());
         if (!r.ok) { const f = UI.$("#vform .field", m.el); f.classList.add("error"); f.querySelector(".err")?.remove(); f.insertAdjacentHTML("beforeend", `<div class="err">${UI.esc(r.error)}</div>`); return; }
         voucherCode = r.voucher.code; m.close(); renderSummary(); UI.toast(`Đã áp dụng mã ${voucherCode}: giảm ${fmt(r.discount)}.`);
       };
@@ -133,7 +142,7 @@
       if (!valid) { UI.$(".field.error .input")?.focus(); return UI.toast("Vui lòng kiểm tra lại thông tin nhận hàng.", "error"); }
       // Giá/tồn kho đổi kể từ lúc khách xem -> dừng lại, cập nhật tóm tắt để khách xác nhận lại
       const fresh = Store.cart();
-      const changed = fresh.some((l) => l.adjusted) || Store.calcTotals(fresh, voucherCode).total !== shownTotal;
+      const changed = fresh.some((l) => l.adjusted) || Store.calcTotals(fresh, voucherCode, who()).total !== shownTotal;
       if (changed) return finish(Store.placeOrder({ customer: customer(), voucherCode, payment: form.payment.value, expectedTotal: shownTotal }));
       if (form.payment.value === "vnpay") return vnpay();
       finish(Store.placeOrder({ customer: customer(), voucherCode, payment: "cod", expectedTotal: shownTotal }));
@@ -157,6 +166,7 @@
 
     function finish(r) {
       if (!r.ok) {
+        if (r.voucherInvalid) voucherCode = null;
         lines = Store.cart();
         if (!lines.some((l) => !l.unavailable)) return (location.href = "cart.html");
         renderSummary();

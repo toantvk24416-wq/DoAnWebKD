@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tra cứu đơn hàng – Davines Việt Nam</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -35,6 +38,7 @@
     form.onsubmit = (e) => {
       e.preventDefault();
       const { V } = UI;
+      UI.$("#result").innerHTML = ""; // ẩn kết quả của lần tra cứu trước, tránh hiểu nhầm là đơn của mã mới
       if (!UI.validate(form, { code: [V.required("mã đơn hàng"), (v) => (/^DV-\d{6}-\d{4}$/i.test(v) ? "" : "Mã đơn không đúng định dạng DV-YYMMDD-NNNN.")], email: [V.required("email"), V.email] })) return;
       const o = Store.lookupOrder(form.code.value, form.email.value);
       UI.$("#result").innerHTML = o
