@@ -19,16 +19,16 @@ export default async function (t, check) {
 
   // ---- Danh sách
   await t.go(B + "products.html");
-  check("Danh sách: tổng số sản phẩm", (await t.js(`return document.querySelector('#count').innerText`)) === "28 sản phẩm", await t.js(`return document.querySelector('#count').innerText`));
-  check("Phân trang 12/trang", (await t.js(`return document.querySelectorAll('.card').length + '/' + document.querySelectorAll('#pager button').length`)) === "12/3");
+  check("Danh sách: tổng số sản phẩm", (await t.js(`return document.querySelector('#count').innerText`)) === (await t.js(`return Store.products().length + " sản phẩm"`)), await t.js(`return document.querySelector('#count').innerText`));
+  check("Phân trang 24/trang (BR-SP07)", (await t.js(`return document.querySelectorAll('.card').length + '/' + document.querySelectorAll('#pager button').length`)) === (await t.js(`return "24/" + Math.ceil(Store.products().length / 24)`)));
   await t.js(`[...document.querySelectorAll('#filters input')].find(i=>i.value==='Dưỡng ẩm').click()`);
   const mism = await t.js(`return [...document.querySelectorAll('.card')].map(c=>c.querySelector('h3').innerText).filter(n=>{const p=Store.products().find(x=>x.name===n);return !p.needs.includes('Dưỡng ẩm')})`);
   check("Lọc Dưỡng ẩm chỉ ra sản phẩm có tag Dưỡng ẩm", mism.length === 0, mism.join(", "));
   const tagShown = await t.js(`return [...document.querySelectorAll('.card')].filter(c=>!c.innerText.toUpperCase().includes('DƯỠNG ẨM')).map(c=>c.querySelector('h3').innerText)`);
   check("Thẻ sản phẩm hiện tag khớp bộ lọc đang chọn", tagShown.length === 0, "Thẻ không hiện tag Dưỡng ẩm: " + tagShown.join(", "));
   await t.go(B + "products.html?needs=D%C6%B0%E1%BB%A1ng%20%E1%BA%A9m&sort=price-asc");
-  const prices = await t.js(`return [...document.querySelectorAll('.card .price')].map(p=>+p.innerText.replace(/^Từ /,'').split('₫')[0].replace(/\\D/g,''))`);
-  check("Lọc giữ nguyên khi tải lại URL + sắp xếp giá tăng dần đúng", prices.length > 0 && prices.every((p, i) => !i || p >= prices[i - 1]), prices.join(" "));
+  const prices = await t.js(`return [...document.querySelectorAll('.card')].filter(c=>!c.querySelector('.badge.out')).map(c=>c.querySelector('.price')).map(p=>+p.innerText.replace(/^Từ /,'').split('₫')[0].replace(/\\D/g,''))`);
+  check("Lọc giữ nguyên khi tải lại URL + sắp giá tăng dần đúng (trong nhóm còn hàng)", prices.length > 0 && prices.every((p, i) => !i || p >= prices[i - 1]), prices.join(" "));
   const names = () => t.js(`return [...document.querySelectorAll('.card h3')].map(h=>h.innerText)`);
   await t.go(B + "products.html?hair=T%C3%B3c%20kh%C3%B4&price=1300000-99999999");
   const dryOver = await names();
@@ -49,7 +49,8 @@ export default async function (t, check) {
   check("Tiêu đề trang theo dòng", (await t.js(`return document.querySelector('#title').innerText`)) === "Naturaltech", await t.js(`return document.querySelector('#title').innerText`));
   await t.go(B + "products.html?sort=new");
   const firstNew = await t.js(`return [...document.querySelectorAll('.card h3')].slice(0,4).map(h=>h.innerText).join(', ')`);
-  check("Sắp xếp 'Mới nhất' đưa hàng mới (bánh gội, combo) lên đầu", /Bánh gội|Combo/.test(firstNew.split(", ")[0]), firstNew);
+  const newestFirst = await t.js(`const n=document.querySelector('.card h3').innerText; const p=Store.products().find(x=>x.name===n); return p.createdAt === Store.products().map(x=>x.createdAt).sort().pop()`);
+  check("Sắp xếp 'Mới nhất' đưa hàng lên kệ gần nhất lên đầu", newestFirst, firstNew);
 
   // ---- Chi tiết
   await t.go(B + "product.html?id=khong-ton-tai");

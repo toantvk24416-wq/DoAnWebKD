@@ -898,7 +898,8 @@ window.DAVINES_SEED = {
     "Dưỡng ẩm"
    ],
    "hair": [
-    "Tóc khô"
+    "Tóc khô",
+    "Da đầu khô"
    ],
    "short": "Nuôi dưỡng da đầu và tóc khô",
    "description": "Dầu gội Davines Nourishing Shampoo – 1000ml, giúp nuôi dưỡng, phục hồi và bảo vệ mái tóc",
@@ -1232,6 +1233,1122 @@ window.DAVINES_SEED = {
    ],
    "extra": "Không chứa paraben.",
    "ingredients": null
+  },
+  {
+   "id": "dau-xa-dede",
+   "name": "DEDE Dầu xả",
+   "kind": "Dầu xả",
+   "line": "DEDE",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Làm mượt, giảm xơ"
+   ],
+   "hair": [
+    "Mọi loại tóc"
+   ],
+   "short": "Dưỡng mềm nhẹ, dùng hằng ngày",
+   "description": "Giúp mái tóc mềm, nhẹ và bồng bềnh hơn, có mùi chanh thơm mát",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-dede-conditioner-1000ml-giup-toc-mem-muot-giam-tinh-trang-xo-roi-cua-toc",
+   "variants": [
+    {
+     "sku": "8832230",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-dede-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "8832229",
+     "size": "1000 ml",
+     "price": 1699000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-dede-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Dưỡng mềm nhẹ, dùng hằng ngày.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-momo",
+   "name": "MOMO Dầu xả",
+   "kind": "Dầu xả",
+   "line": "MOMO",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Dưỡng ẩm"
+   ],
+   "hair": [
+    "Tóc khô"
+   ],
+   "short": "Cấp ẩm sâu cho tóc khô",
+   "description": "Giảm xơ rối, giúp tóc mềm mượt, hương dịu nhẹ từ hoa cỏ và trái cây",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-momo-conditioner-1000ml-tang-cuong-do-am-cho-toc-tu-sau-ben-trong-than-toc-2",
+   "variants": [
+    {
+     "sku": "8832233",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-momo-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "8832239",
+     "size": "1000 ml",
+     "price": 1699000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-momo-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Cấp ẩm sâu cho tóc khô.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-nounou",
+   "name": "NOUNOU Dầu xả",
+   "kind": "Dầu xả",
+   "line": "NOUNOU",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Phục hồi hư tổn",
+    "Dưỡng ẩm"
+   ],
+   "hair": [
+    "Tóc hư tổn"
+   ],
+   "short": "Phục hồi tóc hư tổn do hóa chất",
+   "description": "Phục hồi sâu và bảo vệ tóc hư tổn từ hóa chất, mùi cam chanh thơm mát",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-nounou-conditioner-1000ml-lam-day-than-toc-cho-mai-toc-ong-muot-dang-ngoi",
+   "variants": [
+    {
+     "sku": "883223",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-nounou-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "883222",
+     "size": "1000 ml",
+     "price": 1569000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-nounou-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Phục hồi tóc hư tổn do hóa chất.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-minu",
+   "name": "MINU Dầu xả",
+   "kind": "Dầu xả",
+   "line": "MINU",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Giữ màu và độ bóng cho tóc nhuộm",
+   "description": "Sản phẩm đặc biệt thích hợp với những mái tóc nhuộm, tăng độ bóng sáng và độ suôn mềm rực rỡ cho mái tóc, không bết, hương thơm dịu nhẹ từ thiên nhiên",
+   "url": "https://davinesvietnam.com/product/dau-xa-minu-davines-1000ml-bao-ve-va-giu-mau-cho-mai-toc-nhuom",
+   "variants": [
+    {
+     "sku": "883219",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-minu-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "883218",
+     "size": "1000 ml",
+     "price": 1569000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-minu-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giữ màu và độ bóng cho tóc nhuộm.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-melu",
+   "name": "MELU Dầu xả",
+   "kind": "Dầu xả",
+   "line": "MELU",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Phục hồi hư tổn"
+   ],
+   "hair": [
+    "Tóc hư tổn"
+   ],
+   "short": "Giảm chẻ ngọn cho tóc dài, yếu",
+   "description": "Giúp cho mái tóc mềm, nhẹ và bồng bền hơn. Mùi hương nhẹ dịu của hoa và gỗ",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-melu-conditioner-1000ml-giup-giam-tinh-trang-che-ngon-tao-bong-va-lam-day-than-toc",
+   "variants": [
+    {
+     "sku": "240",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-melu-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "246",
+     "size": "1000 ml",
+     "price": 1599000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-melu-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giảm chẻ ngọn cho tóc dài, yếu.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-love-smoothing",
+   "name": "LOVE SMOOTHING Dầu xả",
+   "kind": "Dầu xả",
+   "line": "LOVE SMOOTHING",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Làm mượt, giảm xơ"
+   ],
+   "hair": [
+    "Tóc khô"
+   ],
+   "short": "Làm mượt, giảm rối xù",
+   "description": "Giúp giảm tình trạng rối xù, khó vào nếp của tóc. Có hương thơm tươi mát của chanh",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-love-smoothing-conditioner-1000ml-cho-ban-mai-toc-suon-muot-sang-bong",
+   "variants": [
+    {
+     "sku": "883252",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-love-smoothing-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "883253",
+     "size": "1000 ml",
+     "price": 1569000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-love-smoothing-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Làm mượt, giảm rối xù.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-love-curl",
+   "name": "LOVE CURL Dầu xả",
+   "kind": "Dầu xả",
+   "line": "LOVE CURL",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Làm mượt, giảm xơ"
+   ],
+   "hair": [
+    "Tóc xoăn"
+   ],
+   "short": "Tăng độ đàn hồi cho tóc xoăn",
+   "description": "Giúp tăng độ bồng bềnh và nhẹ cho tóc, hương thơm tươi mát của cam chanh",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-love-curl-conditioner-1000ml-tang-do-dan-hoi-va-bong-benh-cho-toc",
+   "variants": [
+    {
+     "sku": "883262",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-love-curl-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "883263",
+     "size": "1000 ml",
+     "price": 1569000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-love-curl-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Tăng độ đàn hồi cho tóc xoăn.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-volu",
+   "name": "VOLU Dầu xả",
+   "kind": "Dầu xả",
+   "line": "VOLU",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Tạo phồng"
+   ],
+   "hair": [
+    "Tóc mỏng"
+   ],
+   "short": "Gỡ rối mà không làm nặng tóc mỏng",
+   "description": "Giúp tóc mỏng trở nên bồng bềnh hơn",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-volu-conditioner-1000ml-lam-mem-muot-tang-do-phong-cho-toc-mem-yeu",
+   "variants": [
+    {
+     "sku": "8832223",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-volu-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "8832225",
+     "size": "1000 ml",
+     "price": 1569000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-volu-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Gỡ rối mà không làm nặng tóc mỏng.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-oi",
+   "name": "OI Dầu xả",
+   "kind": "Dầu xả",
+   "line": "OI",
+   "collection": "OI",
+   "needs": [
+    "Làm mượt, giảm xơ"
+   ],
+   "hair": [
+    "Mọi loại tóc"
+   ],
+   "short": "Mềm, bóng, bảo vệ tóc khỏi nhiệt",
+   "description": "Giảm tác hại của nhiệt từ máy sấy, máy kẹp... Tăng độ giữ nếp cho tóc",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-oi-conditioner-1000ml-mang-den-cho-toc-do-mem-bong-va-chac-khoe",
+   "variants": [
+    {
+     "sku": "883299",
+     "size": "250 ml",
+     "price": 732000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-oi-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "8832100",
+     "size": "1000 ml",
+     "price": 1959000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-oi-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Mềm, bóng, bảo vệ tóc khỏi nhiệt.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-heart-of-glass",
+   "name": "HEART OF GLASS Dầu xả Rich",
+   "kind": "Dầu xả",
+   "line": "HEART OF GLASS",
+   "collection": "Heart of Glass",
+   "needs": [
+    "Giữ màu tóc nhuộm",
+    "Phục hồi hư tổn"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Nuôi dưỡng và làm bóng tóc vàng sáng",
+   "description": "Nuôi dưỡng và củng cố cấu trúc sợi tóc, tăng cường ánh sắc và làm bóng tóc",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-heart-of-glass-rich-conditioner-1000ml-nuoi-duong-va-cham-soc-toc-mau-vang-sang",
+   "variants": [
+    {
+     "sku": "883267",
+     "size": "250 ml",
+     "price": 816000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-rich-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "8832115",
+     "size": "1000 ml",
+     "price": 2448000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-rich-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Nuôi dưỡng và làm bóng tóc vàng sáng.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-nourishing",
+   "name": "NOURISHING Dầu xả Vegetarian Miracle",
+   "kind": "Dầu xả",
+   "line": "NOURISHING",
+   "collection": "Naturaltech",
+   "needs": [
+    "Dưỡng ẩm",
+    "Phục hồi hư tổn"
+   ],
+   "hair": [
+    "Tóc khô",
+    "Da đầu khô"
+   ],
+   "short": "Dưỡng ẩm cho tóc khô và da đầu khô",
+   "description": "Cung cấp chất dinh dưỡng cần thiết, cho khả năng khống oxy hóa, giúp mái tóc trở nên mền mại, chắc khỏe hơn",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-nourishing-vegetarian-miracle-1000ml-giup-duong-am-va-bao-ve-cau-truc-toc",
+   "variants": [
+    {
+     "sku": "8832108",
+     "size": "250 ml",
+     "price": 788000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-nourishing-vegetarian-miracle-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "8832109",
+     "size": "1000 ml",
+     "price": 1899000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-nourishing-vegetarian-miracle-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Dưỡng ẩm cho tóc khô và da đầu khô.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-renewing",
+   "name": "RENEWING Dầu xả Conditioning Treatment",
+   "kind": "Dầu xả",
+   "line": "RENEWING",
+   "collection": "Naturaltech",
+   "needs": [
+    "Chống lão hóa"
+   ],
+   "hair": [
+    "Mọi loại tóc"
+   ],
+   "short": "Chống lão hóa cho tóc và da đầu",
+   "description": "Giúp dưỡng ẩm, tăng độ mềm, nhẹ và chắc khỏe cho tóc",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-renewing-conditioning-treatment-1000ml-giup-chong-lao-hoa-cho-toc-va-da-dau",
+   "variants": [
+    {
+     "sku": "883285",
+     "size": "250 ml",
+     "price": 569000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-renewing-conditioning-treatment.jpg"
+     ]
+    },
+    {
+     "sku": "8832134",
+     "size": "1000 ml",
+     "price": 1889000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-renewing-conditioning-treatment.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Chống lão hóa cho tóc và da đầu.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-replumping",
+   "name": "REPLUMPING Dầu xả",
+   "kind": "Dầu xả",
+   "line": "REPLUMPING",
+   "collection": "Naturaltech",
+   "needs": [
+    "Dưỡng ẩm"
+   ],
+   "hair": [
+    "Tóc khô"
+   ],
+   "short": "Gỡ rối, tăng đàn hồi cho tóc",
+   "description": "Nhẹ nhàng loại bỏ bụi bẩn, cân bằng độ ẩm, tăng đàn hồi, làm mềm mượt cho tóc",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-replumping-conditioner-1000ml-go-roi-lam-muot-va-khien-toc-tro-nen-dan-hoi-hon",
+   "variants": [
+    {
+     "sku": "668",
+     "size": "150 ml",
+     "price": 318000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-replumping-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "670",
+     "size": "1000 ml",
+     "price": 1070000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-replumping-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Gỡ rối, tăng đàn hồi cho tóc.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-well-being",
+   "name": "WELL BEING Dầu xả",
+   "kind": "Dầu xả",
+   "line": "WELL BEING",
+   "collection": "Naturaltech",
+   "needs": [
+    "Dưỡng ẩm"
+   ],
+   "hair": [
+    "Mọi loại tóc"
+   ],
+   "short": "Gỡ rối, dưỡng ẩm nhẹ nhàng",
+   "description": "Thích hợp sử dụng xen kẽ với các loại dầu xả trị liệu khác của Davinanes hoặc cho tóc không cần chữa trị, giúp làm mềm, giảm rối xù",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-well-being-conditioner-1000ml-giup-go-roi-duong-am-cho-toc-cho-toc-trong-men-muot",
+   "variants": [
+    {
+     "sku": "650",
+     "size": "150 ml",
+     "price": 318000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-wellbeing-conditioner.jpg"
+     ]
+    },
+    {
+     "sku": "655",
+     "size": "1000 ml",
+     "price": 1070000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-wellbeing-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Gỡ rối, dưỡng ẩm nhẹ nhàng.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08"
+  },
+  {
+   "id": "dau-xa-dede-leave-in",
+   "name": "DEDE Xịt dưỡng không xả",
+   "kind": "Dưỡng tóc",
+   "line": "DEDE",
+   "collection": "Essential Haircare",
+   "needs": [
+    "Làm mượt, giảm xơ"
+   ],
+   "hair": [
+    "Mọi loại tóc"
+   ],
+   "short": "Gỡ rối, dưỡng mềm không cần xả",
+   "description": "Xịt dưỡng không xả dòng DEDE, gỡ rối và làm mềm tóc ngay sau khi gội, phù hợp mọi loại tóc",
+   "url": null,
+   "variants": [
+    {
+     "sku": "DV-DEDE-LEAVE-IN-250",
+     "size": "250 ml",
+     "price": 635000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-dede-leave-in-conditioner.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Gỡ rối, dưỡng mềm không cần xả.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Không cần xả lại với nước.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "duong-authentic-moisturizing-balm",
+   "name": "AUTHENTIC Kem dưỡng ẩm",
+   "kind": "Dưỡng tóc",
+   "line": "AUTHENTIC",
+   "collection": "Authentic",
+   "needs": [
+    "Dưỡng ẩm"
+   ],
+   "hair": [
+    "Tóc khô",
+    "Da đầu khô"
+   ],
+   "short": "Dưỡng ẩm cho tóc, da mặt và cơ thể",
+   "description": "Kem dưỡng ẩm đa năng dòng Authentic, dùng cho tóc khô, da mặt và cơ thể, thành phần có nguồn gốc tự nhiên",
+   "url": null,
+   "variants": [
+    {
+     "sku": "DV-AUTHENTIC-MOISTURIZING-BALM-150",
+     "size": "150 ml",
+     "price": 690000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-moisturizing-balm.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Dưỡng ẩm cho tóc, da mặt và cơ thể.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Không cần xả lại với nước.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-chocolate",
+   "name": "ALCHEMIC Dầu xả Chocolate",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Giữ và tăng sắc màu socola cho tóc nhuộm",
+   "description": "ALCHEMIC Dầu xả Chocolate – dầu xả dòng Alchemic, giữ và tăng sắc màu socola cho tóc nhuộm",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-CHOCOLATE-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-chocolate.jpg"
+     ]
+    },
+    {
+     "sku": "DV-ALCHEMIC-CHOCOLATE-1000",
+     "size": "1000 ml",
+     "price": 1967000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-chocolate.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giữ và tăng sắc màu socola cho tóc nhuộm.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-copper",
+   "name": "ALCHEMIC Dầu xả Copper",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Giữ và tăng sắc màu đồng cho tóc nhuộm",
+   "description": "ALCHEMIC Dầu xả Copper – dầu xả dòng Alchemic, giữ và tăng sắc màu đồng cho tóc nhuộm",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-COPPER-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-copper.jpg"
+     ]
+    },
+    {
+     "sku": "DV-ALCHEMIC-COPPER-1000",
+     "size": "1000 ml",
+     "price": 1967000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-copper.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giữ và tăng sắc màu đồng cho tóc nhuộm.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-golden",
+   "name": "ALCHEMIC Dầu xả Golden",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Giữ và tăng sắc màu vàng cho tóc nhuộm",
+   "description": "ALCHEMIC Dầu xả Golden – dầu xả dòng Alchemic, giữ và tăng sắc màu vàng cho tóc nhuộm",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-GOLDEN-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-golden.jpg"
+     ]
+    },
+    {
+     "sku": "DV-ALCHEMIC-GOLDEN-1000",
+     "size": "1000 ml",
+     "price": 1967000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-golden.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giữ và tăng sắc màu vàng cho tóc nhuộm.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-red",
+   "name": "ALCHEMIC Dầu xả Red",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Giữ và tăng sắc màu đỏ cho tóc nhuộm",
+   "description": "ALCHEMIC Dầu xả Red – dầu xả dòng Alchemic, giữ và tăng sắc màu đỏ cho tóc nhuộm",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-RED-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-red.jpg"
+     ]
+    },
+    {
+     "sku": "DV-ALCHEMIC-RED-1000",
+     "size": "1000 ml",
+     "price": 1967000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-red.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giữ và tăng sắc màu đỏ cho tóc nhuộm.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-silver",
+   "name": "ALCHEMIC Dầu xả Silver",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Giữ và tăng sắc màu bạc cho tóc nhuộm",
+   "description": "ALCHEMIC Dầu xả Silver – dầu xả dòng Alchemic, giữ và tăng sắc màu bạc cho tóc nhuộm",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-SILVER-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-silver.jpg"
+     ]
+    },
+    {
+     "sku": "DV-ALCHEMIC-SILVER-1000",
+     "size": "1000 ml",
+     "price": 1967000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-silver.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giữ và tăng sắc màu bạc cho tóc nhuộm.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-tobacco",
+   "name": "ALCHEMIC Dầu xả Tobacco",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Giữ và tăng sắc màu nâu thuốc lá cho tóc nhuộm",
+   "description": "ALCHEMIC Dầu xả Tobacco – dầu xả dòng Alchemic, giữ và tăng sắc màu nâu thuốc lá cho tóc nhuộm",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-TOBACCO-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-tobacco.jpg"
+     ]
+    },
+    {
+     "sku": "DV-ALCHEMIC-TOBACCO-1000",
+     "size": "1000 ml",
+     "price": 1967000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-conditioner-tobacco.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Giữ và tăng sắc màu nâu thuốc lá cho tóc nhuộm.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-creative-coral",
+   "name": "ALCHEMIC Creative Dầu xả Coral",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Nhuộm màu san hô tạm thời cho tóc sáng màu",
+   "description": "ALCHEMIC Creative Dầu xả Coral – dầu xả dòng Alchemic, nhuộm màu san hô tạm thời cho tóc sáng màu",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-CREATIVE-CORAL-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-creative-conditioner-coral.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Nhuộm màu san hô tạm thời cho tóc sáng màu.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-creative-lavender",
+   "name": "ALCHEMIC Creative Dầu xả Lavender",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Nhuộm màu oải hương tạm thời cho tóc sáng màu",
+   "description": "ALCHEMIC Creative Dầu xả Lavender – dầu xả dòng Alchemic, nhuộm màu oải hương tạm thời cho tóc sáng màu",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-CREATIVE-LAVENDER-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-creative-conditioner-lavender.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Nhuộm màu oải hương tạm thời cho tóc sáng màu.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-creative-marine-blue",
+   "name": "ALCHEMIC Creative Dầu xả Marine Blue",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Nhuộm màu xanh biển tạm thời cho tóc sáng màu",
+   "description": "ALCHEMIC Creative Dầu xả Marine Blue – dầu xả dòng Alchemic, nhuộm màu xanh biển tạm thời cho tóc sáng màu",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-CREATIVE-MARINE-BLUE-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-creative-conditioner-marine-blue.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Nhuộm màu xanh biển tạm thời cho tóc sáng màu.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-creative-pink",
+   "name": "ALCHEMIC Creative Dầu xả Pink",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Nhuộm màu hồng tạm thời cho tóc sáng màu",
+   "description": "ALCHEMIC Creative Dầu xả Pink – dầu xả dòng Alchemic, nhuộm màu hồng tạm thời cho tóc sáng màu",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-CREATIVE-PINK-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-creative-conditioner-pink.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Nhuộm màu hồng tạm thời cho tóc sáng màu.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
+  },
+  {
+   "id": "dau-xa-alchemic-creative-teal",
+   "name": "ALCHEMIC Creative Dầu xả Teal",
+   "kind": "Dầu xả",
+   "line": "ALCHEMIC",
+   "collection": "Alchemic",
+   "needs": [
+    "Giữ màu tóc nhuộm"
+   ],
+   "hair": [
+    "Tóc nhuộm"
+   ],
+   "short": "Nhuộm màu xanh mòng két tạm thời cho tóc sáng màu",
+   "description": "ALCHEMIC Creative Dầu xả Teal – dầu xả dòng Alchemic, nhuộm màu xanh mòng két tạm thời cho tóc sáng màu",
+   "url": "https://davinesvietnam.com/product/dau-xa-davines-alchemic-conditoner-250ml-duong-mau-cho-toc",
+   "variants": [
+    {
+     "sku": "DV-ALCHEMIC-CREATIVE-TEAL-250",
+     "size": "250 ml",
+     "price": 746000,
+     "stock": 30,
+     "images": [
+      "assets/img/products/dau-xa-alchemic-creative-conditioner-teal.jpg"
+     ]
+    }
+   ],
+   "benefits": [
+    "Nhuộm màu xanh mòng két tạm thời cho tóc sáng màu.",
+    "Thành phần hoạt động tự nhiên."
+   ],
+   "extra": "Dùng sau dầu gội cùng dòng để đạt hiệu quả tốt nhất.",
+   "ingredients": null,
+   "createdAt": "2026-11-08",
+   "gia_tam": true
   }
  ]
 };

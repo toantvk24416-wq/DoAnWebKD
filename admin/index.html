@@ -4,12 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Quản trị – Davines</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/brand/favicon.svg">
+  <link rel="icon" type="image/png" href="../assets/img/brand/favicon.png">
+  <link rel="apple-touch-icon" href="../assets/img/brand/apple-touch-icon.png">
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
   <div class="admin">
     <aside>
-      <a class="logo" href="#report">davines<small>QUẢN TRỊ</small></a>
+      <a class="logo" href="#report"><img class="logo-img" src="../assets/img/brand/logo-davines-white.svg" alt="davines" width="140" height="41"><small>QUẢN TRỊ</small></a>
       <nav id="menu"></nav>
     </aside>
     <main>
@@ -23,7 +26,7 @@
   <script src="../assets/js/ui.js"></script>
   <script>
     const admin = Store.currentAdmin();
-    if (!admin) location.replace("login.html");
+    if (!admin) location.replace("../login.html?tab=admin"); // dùng màn hình đăng nhập chung
     const { fmt } = Store;
     const { esc, $, $$ } = UI;
     const app = $("#app");
@@ -38,7 +41,7 @@
     };
 
     $("#who").textContent = admin ? admin.email : "";
-    $("#logout").onclick = async () => { if (await UI.confirmBox("Đăng xuất?", "Bạn sẽ quay lại trang đăng nhập quản trị.", "Đăng xuất")) { Store.adminLogout(); location.href = "login.html"; } };
+    $("#logout").onclick = async () => { if (await UI.confirmBox("Đăng xuất?", "Bạn sẽ quay lại trang đăng nhập.", "Đăng xuất")) { Store.adminLogout(); location.href = "../login.html?tab=admin"; } };
 
     function route() {
       const key = SECTIONS[location.hash.slice(1)] ? location.hash.slice(1) : "report";
@@ -48,6 +51,8 @@
       VIEWS[key]();
     }
     window.addEventListener("hashchange", route);
+    // Trạng thái trang Voucher (tab, bộ lọc, dòng đang chọn) giữ nguyên khi vẽ lại sau mỗi thao tác
+    const vouchersUI = { tab: "codes", q: "", period: "all", status: "all", line: "" };
 
     const VIEWS = {
       // ---------- UC19 Báo cáo ----------
@@ -214,30 +219,113 @@
       },
 
       // ---------- UC18 Voucher & khuyến mãi ----------
+      // 2 tab: Mã ưu đãi (lọc theo từ khóa / hiệu lực / trạng thái) và Khuyến mãi tự động (chọn dòng rồi đặt % giảm)
       vouchers() {
         const t = Store.today();
-        const state = (v) => (!v.active ? ["Đã tắt", ""] : t > v.end ? ["Hết hạn", ""] : v.used >= v.limit ? ["Hết lượt", ""] : t < v.start ? ["Chưa bắt đầu", "s-confirmed"] : ["Đang chạy", "s-delivered"]);
+        const V = vouchersUI;
+        const state = (v) => (!v.active ? ["Đã tắt", "s-off", "off"] : t > v.end ? ["Hết hạn", "", "expired"] : v.used >= v.limit ? ["Hết lượt", "", "used-up"] : t < v.start ? ["Chưa bắt đầu", "s-confirmed", "upcoming"] : ["Đang chạy", "s-delivered", "running"]);
+        const products = Store.products({ all: true });
+        const ymd = (d) => d.split("-").reverse().join("/");
         app.innerHTML = `
-          <div class="panel">
-            <div style="display:flex;justify-content:space-between;align-items:center"><h3>Mã ưu đãi</h3><button class="btn" id="vadd">+ Tạo voucher</button></div>
-            <table class="table"><thead><tr><th>Mã</th><th>Ưu đãi</th><th>Đơn tối thiểu</th><th>Thời gian</th><th>Đã dùng</th><th>Trạng thái</th><th></th></tr></thead><tbody>${Store.db.vouchers.map((v) => { const [l, c] = state(v); return `
-              <tr><td><b>${v.code}</b><div class="small muted">${esc(v.desc)}</div></td><td>${v.type === "percent" ? `${v.value}%${v.maxDiscount ? ` (tối đa ${fmt(v.maxDiscount)})` : ""}` : fmt(v.value)}</td><td>${fmt(v.minOrder)}</td>
-              <td class="small">${v.start.split("-").reverse().join("/")} – ${v.end.split("-").reverse().join("/")}</td><td>${v.used}/${v.limit}</td><td><span class="status ${c}">${l}</span></td>
-              <td style="white-space:nowrap"><button class="link small" data-v="${v.code}">Sửa</button> · <button class="link small" data-x="${v.code}">${v.active ? "Tắt" : "Bật"}</button></td></tr>`; }).join("")}</tbody></table>
+          <div class="vtabs">
+            <div class="tabs" role="tablist">
+              <button role="tab" data-vtab="codes" class="${V.tab === "codes" ? "on" : ""}" aria-selected="${V.tab === "codes"}">Mã ưu đãi (${Store.db.vouchers.length})</button>
+              <button role="tab" data-vtab="promo" class="${V.tab === "promo" ? "on" : ""}" aria-selected="${V.tab === "promo"}">Khuyến mãi tự động (${products.length})</button>
+            </div>
+            ${V.tab === "codes" ? `<button class="btn" id="vadd">+ Tạo voucher</button>` : `<span class="small muted">Thay đổi được lưu ngay khi nhập</span>`}
           </div>
+          <div id="vbody"></div>`;
+        $$("[data-vtab]").forEach((b) => (b.onclick = () => { V.tab = b.dataset.vtab; VIEWS.vouchers(); }));
+
+        if (V.tab === "codes") {
+          $("#vbody").innerHTML = `
+            <div class="panel">
+              <div class="filters-row vfilters">
+                <div class="field"><input class="input" id="vq" placeholder="Tìm theo mã hoặc mô tả" value="${esc(V.q)}"></div>
+                <div class="field"><select class="input" id="vperiod">${[["all", "Hiệu lực: Tất cả thời gian"], ["now", "Đang trong thời gian"], ["future", "Sắp diễn ra"], ["past", "Đã kết thúc"]].map(([k, l]) => `<option value="${k}" ${V.period === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+                <div class="field"><select class="input" id="vstatus">${[["all", "Trạng thái: Tất cả"], ["running", "Đang chạy"], ["upcoming", "Chưa bắt đầu"], ["off", "Đã tắt"], ["expired", "Hết hạn"], ["used-up", "Hết lượt"]].map(([k, l]) => `<option value="${k}" ${V.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+                <span class="small muted" id="vcount" style="margin-left:auto;align-self:center"></span>
+              </div>
+              <div class="table-scroll"><table class="table vtable"><thead><tr><th>Mã</th><th>Ưu đãi</th><th>Đơn tối thiểu</th><th>Thời gian</th><th>Đã dùng</th><th>Trạng thái</th><th></th></tr></thead><tbody id="vrows"></tbody></table></div>
+              <p class="small muted" style="margin:16px 0 0">Chỉ voucher chưa có lượt dùng mới xóa được. Voucher đã dùng chỉ có thể tắt để giữ nguyên lịch sử đơn hàng và báo cáo.</p>
+            </div>`;
+          const draw = () => {
+            const q = V.q.trim().toLowerCase();
+            const list = Store.db.vouchers.filter((v) => (!q || `${v.code} ${v.desc}`.toLowerCase().includes(q))
+              && (V.period === "all" || (V.period === "now" ? v.start <= t && t <= v.end : V.period === "future" ? t < v.start : t > v.end))
+              && (V.status === "all" || state(v)[2] === V.status));
+            $("#vcount").textContent = `${list.length} voucher`;
+            $("#vrows").innerHTML = list.length ? list.map((v) => { const [l, c] = state(v); return `
+              <tr><td class="vcode"><b>${esc(v.code)}</b><div class="small muted">${esc(v.desc)}</div></td>
+              <td class="nowrap">${v.type === "percent" ? `${v.value}%${v.maxDiscount ? `<div class="small muted">tối đa ${fmt(v.maxDiscount)}</div>` : ""}` : fmt(v.value)}</td><td class="nowrap">${fmt(v.minOrder)}</td>
+              <td class="small nowrap">${ymd(v.start)} –<br>${ymd(v.end)}</td>
+              <td class="nowrap">${v.used}/${v.limit}<div class="hbar"><i style="width:${Math.min(100, Math.round(v.used / Math.max(1, v.limit) * 100))}%"></i></div></td>
+              <td><span class="status ${c}">${l}</span></td>
+              <td class="nowrap"><button class="link small" data-v="${esc(v.code)}">Sửa</button> · <button class="link small" data-x="${esc(v.code)}">${v.active ? "Tắt" : "Bật"}</button> · <button class="link small danger" data-del="${esc(v.code)}" ${v.used > 0 ? `disabled title="Voucher đã có lượt dùng, chỉ có thể tắt"` : ""}>Xóa</button></td></tr>`; }).join("")
+              : `<tr><td colspan="7" class="muted" style="text-align:center;padding:32px">Không có voucher phù hợp.</td></tr>`;
+            $$("[data-v]").forEach((b) => (b.onclick = () => editVoucher(Store.db.vouchers.find((v) => v.code === b.dataset.v))));
+            $$("[data-x]").forEach((b) => (b.onclick = () => { const v = Store.db.vouchers.find((x) => x.code === b.dataset.x); Store.saveVoucher({ ...v, active: !v.active }); VIEWS.vouchers(); }));
+            $$("[data-del]").forEach((b) => (b.onclick = async () => {
+              if (!(await UI.confirmBox(`Xóa voucher ${b.dataset.del}?`, "Voucher chưa có lượt dùng nên có thể xóa hẳn. Không hoàn tác được.", "Xóa"))) return;
+              const r = Store.deleteVoucher(b.dataset.del);
+              r.ok ? UI.toast(`Đã xóa voucher ${b.dataset.del}.`) : UI.toast(r.error, "error");
+              VIEWS.vouchers();
+            }));
+          };
+          $("#vadd").onclick = () => editVoucher(null);
+          $("#vq").oninput = (e) => { V.q = e.target.value; draw(); };
+          $("#vperiod").onchange = (e) => { V.period = e.target.value; draw(); };
+          $("#vstatus").onchange = (e) => { V.status = e.target.value; draw(); };
+          draw();
+          return;
+        }
+
+        // Tab Khuyến mãi tự động
+        const lines = {};
+        products.forEach((p) => (lines[p.collection] = lines[p.collection] || []).push(p));
+        const order = Object.keys(lines).sort((a, b) => lines[b].length - lines[a].length || a.localeCompare(b));
+        if (V.line && !lines[V.line]) V.line = "";
+        const ps = V.line ? lines[V.line] : [];
+        const minPrice = (p) => [...p.variants].sort((a, b) => a.price - b.price)[0];
+        $("#vbody").innerHTML = `
           <div class="panel">
-            <h3>Khuyến mãi tự động theo sản phẩm</h3>
-            <p class="small muted">Giảm trực tiếp trên giá bán, hiển thị nhãn "Giảm x%" trên cửa hàng. Có thể dùng chung với mã ưu đãi.</p>
-            <table class="table"><thead><tr><th>Sản phẩm</th><th>Dòng</th><th style="width:160px">Giảm (%)</th></tr></thead><tbody>${Store.products({ all: true }).map((p) => `<tr><td>${esc(p.name)}</td><td>${esc(p.collection)}</td><td><input class="input" type="number" min="0" max="50" value="${p.sale || 0}" data-sale="${p.id}" style="height:36px"></td></tr>`).join("")}</tbody></table>
+            <h3 style="margin-bottom:4px">Khuyến mãi tự động theo sản phẩm</h3>
+            <p class="small muted" style="margin-top:0">Chọn một dòng sản phẩm, rồi đặt mức giảm cho cả dòng hoặc từng sản phẩm. Nhãn "Giảm x%" hiện trên cửa hàng và dùng chung được với mã ưu đãi.</p>
+            <div class="promo">
+              <nav class="promo-lines" aria-label="Dòng sản phẩm">
+                <div class="eyebrow">Dòng sản phẩm</div>
+                ${order.map((c) => { const on = lines[c].filter((p) => p.sale > 0).length; return `<button data-line="${esc(c)}" class="${c === V.line ? "on" : ""}"><span>${esc(c)}${on ? `<small>${on} đang giảm</small>` : ""}</span><span class="small muted">${lines[c].length}</span></button>`; }).join("")}
+              </nav>
+              <div class="promo-main">${!V.line ? `
+                <div class="empty"><h3>Chọn một dòng sản phẩm</h3><p class="muted small" style="margin:0">Mức giảm được đặt cho từng sản phẩm trong dòng đã chọn.<br>Chọn dòng ở danh sách bên trái để bắt đầu.</p></div>` : `
+                <div class="promo-head"><h3>${esc(V.line)}</h3><span class="small muted">${ps.length} sản phẩm</span></div>
+                <form class="promo-bulk" id="pbulk" novalidate>
+                  <div><b class="small">Đặt cùng một mức giảm cho cả dòng</b><div class="small muted">Từ 0 đến 50%. Vẫn chỉnh riêng được từng sản phẩm bên dưới.</div></div>
+                  <div class="promo-bulk-ctl"><input class="input" name="pct" type="number" min="0" max="50" value="0" aria-label="Mức giảm cho cả dòng (%)"><span>%</span><button class="btn">Áp dụng cho ${ps.length} sản phẩm</button></div>
+                </form>
+                <div class="table-scroll"><table class="table"><thead><tr><th>Sản phẩm</th><th>Giá gốc</th><th style="width:110px">Giảm (%)</th><th>Giá sau giảm</th><th>Trạng thái</th></tr></thead><tbody>${ps.map((p) => { const v = minPrice(p), pic = v.images[0] || p.variants.find((x) => x.images[0])?.images[0]; return `
+                  <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="admin-thumb">${pic ? `<img src="${img(pic)}" alt="">` : ""}</span><div>${esc(p.name)}<div class="small muted">${esc(p.kind)}</div></div></div></td>
+                  <td class="nowrap">${p.variants.length > 1 ? "Từ " : ""}${fmt(v.price)}</td>
+                  <td><input class="input" type="number" min="0" max="50" value="${p.sale || 0}" data-sale="${p.id}" style="height:36px" aria-label="Giảm (%) ${esc(p.name)}"></td>
+                  <td class="nowrap" data-after="${p.id}">${p.sale ? fmt(Store.unitPrice(p, v)) : "—"}</td>
+                  <td>${p.sale ? `<span class="status s-delivered">Đang giảm</span>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`}
+              </div>
+            </div>
           </div>`;
-        $("#vadd").onclick = () => editVoucher(null);
-        $$("[data-v]").forEach((b) => (b.onclick = () => editVoucher(Store.db.vouchers.find((v) => v.code === b.dataset.v))));
-        $$("[data-x]").forEach((b) => (b.onclick = () => { const v = Store.db.vouchers.find((x) => x.code === b.dataset.x); Store.saveVoucher({ ...v, active: !v.active }); VIEWS.vouchers(); }));
+        $$("[data-line]").forEach((b) => (b.onclick = () => { V.line = b.dataset.line; VIEWS.vouchers(); }));
+        const setSale = (p, n) => { p.sale = n; Store.saveProduct(p); };
         $$("[data-sale]").forEach((i) => (i.onchange = () => {
           const n = Math.round(+i.value);
           if (!(n >= 0 && n <= 50)) { UI.toast("Mức giảm phải từ 0 đến 50%.", "error"); i.value = Store.product(i.dataset.sale).sale; return; }
-          const p = Store.product(i.dataset.sale); p.sale = n; Store.saveProduct(p); UI.toast(`Đã cập nhật giảm giá ${p.name}: ${n}%.`);
+          const p = Store.product(i.dataset.sale); setSale(p, n); UI.toast(`Đã cập nhật giảm giá ${p.name}: ${n}%.`); VIEWS.vouchers();
         }));
+        if ($("#pbulk")) $("#pbulk").onsubmit = (e) => {
+          e.preventDefault();
+          const n = Math.round(+e.target.pct.value);
+          if (!(n >= 0 && n <= 50)) return UI.toast("Mức giảm phải từ 0 đến 50%.", "error");
+          ps.forEach((p) => setSale(p, n));
+          UI.toast(`Đã đặt giảm ${n}% cho ${ps.length} sản phẩm dòng ${V.line}.`); VIEWS.vouchers();
+        };
       },
     };
 
@@ -313,6 +401,7 @@
           <div class="row-2"><div class="field"><label>Đơn tối thiểu (₫)</label><input class="input" name="minOrder" type="number" min="0" value="${v.minOrder}"></div><div class="field"><label>Số lượt</label><input class="input" name="limit" type="number" min="1" value="${v.limit}"></div></div>
           <div class="row-2"><div class="field"><label>Bắt đầu</label><input class="input" name="start" type="date" value="${v.start}"></div><div class="field"><label>Kết thúc</label><input class="input" name="end" type="date" value="${v.end}"></div></div>
           <div class="field"><label>Mô tả hiển thị cho khách</label><input class="input" name="desc" value="${esc(v.desc)}"></div>
+          <label class="check" style="margin-bottom:12px"><input type="checkbox" name="firstOrderOnly" ${v.firstOrderOnly ? "checked" : ""}> Chỉ áp dụng cho đơn đầu tiên của khách (theo tài khoản / số điện thoại)</label>
           <div class="modal-actions"><button class="btn">Lưu voucher</button><button type="button" class="btn btn-outline" data-close>Hủy</button></div>
         </form>`, { wide: true });
       $("#vf", m.el).onsubmit = (e) => {
@@ -326,7 +415,7 @@
           desc: [UI.V.required("mô tả")],
         });
         if (!ok) return;
-        const r = Store.saveVoucher({ ...v, code: f.code.value.trim().toUpperCase(), type: f.type.value, value: +f.value.value, maxDiscount: +f.maxDiscount.value, minOrder: +f.minOrder.value, limit: +f.limit.value, start: f.start.value, end: f.end.value, desc: f.desc.value.trim() }, isNew);
+        const r = Store.saveVoucher({ ...v, code: f.code.value.trim().toUpperCase(), type: f.type.value, value: +f.value.value, maxDiscount: +f.maxDiscount.value, minOrder: +f.minOrder.value, limit: +f.limit.value, start: f.start.value, end: f.end.value, desc: f.desc.value.trim(), firstOrderOnly: f.firstOrderOnly.checked }, isNew);
         if (!r.ok) return UI.toast(r.error, "error");
         m.close(); UI.toast("Đã lưu voucher."); VIEWS.vouchers();
       };

@@ -50,6 +50,13 @@ h4 { font-size: 20px; line-height: 28px; }
 .nav a { text-decoration: none; }
 .nav a.active, .nav a:hover { text-decoration: underline; text-underline-offset: 6px; }
 .logo { font: 600 30px/1 var(--f-serif); letter-spacing: -.5px; text-decoration: none; color: var(--c-brand); }
+/* Logo Davines dạng ảnh (SVG) */
+.logo { display: inline-flex; line-height: 0; }
+.logo-img { display: block; height: 38px; width: auto; }
+.site-footer .logo-img { height: 34px; margin-bottom: 12px; }
+.checkout-head .logo-img { height: 34px; }
+.admin aside .logo { flex-direction: column; align-items: flex-start; gap: 8px; line-height: 1; }
+.admin aside .logo-img { height: 30px; }
 .header-icons { display: flex; justify-content: flex-end; gap: 18px; align-items: center; }
 .icon-btn { background: none; border: 0; padding: 4px; cursor: pointer; position: relative; display: inline-flex; text-decoration: none; }
 .icon-btn svg { width: 22px; height: 22px; }
@@ -85,6 +92,9 @@ textarea.input { height: auto; padding: 10px 14px; }
 .tag { display: inline-block; background: var(--c-bg-muted); font: 500 11px/22px var(--f-sans); letter-spacing: 1px; text-transform: uppercase; padding: 0 10px; border-radius: 12px; }
 .badge { display: inline-block; font: 600 11px/22px var(--f-sans); letter-spacing: 1px; text-transform: uppercase; padding: 0 9px; color: #fff; background: var(--c-dark); }
 .badge.sale { background: var(--c-sale); border-radius: 12px; }
+/* Nhãn sản phẩm theo Style Guide: color/status/success và color/status/warning */
+.badge.new { background: var(--c-success); color: #f4f1eb; border-radius: 12px; letter-spacing: 1.5px; }
+.badge.best { background: var(--c-warning); color: #f4f1eb; border-radius: 12px; letter-spacing: 1.5px; }
 .status { display: inline-block; font: 600 10px/20px var(--f-sans); letter-spacing: 1px; text-transform: uppercase; padding: 0 10px; border-radius: 10px; background: var(--c-bg-muted); white-space: nowrap; }
 .status.s-confirmed { background: #fff; border: 1px solid var(--c-text); }
 .status.s-shipping { background: var(--c-dark); color: #fff; }
@@ -112,6 +122,11 @@ textarea.input { height: auto; padding: 10px 14px; }
 .split .dark { background: var(--c-dark); color: #fff; }
 .split .dark h2, .split .dark .eyebrow { color: #fff; }
 .split .soft { background: var(--c-bg-muted); }
+.split .photo { background: var(--c-dark) center/cover no-repeat; color: #fff; position: relative; isolation: isolate; }
+.split .photo::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(43,42,41,.15), rgba(43,42,41,.72)); }
+.split .photo h2, .split .photo .eyebrow { color: #fff; }
+.split .photo p { max-width: 460px; }
+.split .photo .btn { align-self: flex-start; margin-top: 8px; }
 
 .story { display: grid; grid-template-columns: 1fr 1fr; background: var(--c-bg-soft); }
 .story .img { background: var(--c-bg-muted) center/cover; min-height: 420px; }
@@ -132,6 +147,8 @@ textarea.input { height: auto; padding: 10px 14px; }
 .card .img img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; transition: transform .3s; }
 .card:hover .img img { transform: scale(1.04); }
 .card .img .badge { position: absolute; top: 14px; left: 14px; }
+.card .img .badges { position: absolute; top: 14px; left: 14px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.card .img .badges .badge { position: static; }
 .card .img .badge.out { left: auto; right: 14px; }
 .card .body { padding: 18px 16px 22px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .card h3 { font-size: 24px; line-height: 30px; margin: 0; }
@@ -289,7 +306,7 @@ textarea.input { height: auto; padding: 10px 14px; }
   .nav { display: none; position: absolute; top: 70px; left: 0; right: 0; background: #fff; flex-direction: column; gap: 0; padding: 8px var(--gutter) 16px; border-bottom: 1px solid var(--c-bg-muted); }
   .nav.open { display: flex; }
   .nav a { padding: 12px 0; border-bottom: 1px solid var(--c-bg-muted); }
-  .hero { background-image: none !important; min-height: 420px; padding: 48px 0; }
+  .hero { min-height: 420px; padding: 48px 0; }
   .filter-toggle { display: inline-flex; margin-top: 14px; }
   .filters { display: none; }
   .filters.open { display: block; }
@@ -305,6 +322,7 @@ textarea.input { height: auto; padding: 10px 14px; }
   .admin-body { padding: 16px var(--gutter) 40px; }
   .kpis { grid-template-columns: 1fr; }
   .site-header .logo { justify-self: center; }
+  .site-header .logo-img { height: 30px; }
   .filters-row .input { width: 100% !important; }
   .bars { gap: 8px; } .bar-labels { gap: 8px; font-size: 9px; }
   .stats { gap: 24px; }
@@ -322,6 +340,13 @@ textarea.input { height: auto; padding: 10px 14px; }
   .cart-table td { display: block; padding: 8px 0; border: 0; }
   .cart-table tr { display: block; border-bottom: 1px solid var(--c-bg-muted); padding: 12px 0; }
 }
+.search-bar form .btn { align-self: flex-start; }
+
+/* Màn đăng nhập chung: 2 tab Khách hàng / Quản trị */
+.auth-tabs { display: flex; border-bottom: 1px solid var(--c-border); margin-bottom: 28px; }
+.auth-tabs button { flex: 1; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 12px 8px; font: 500 13px/18px var(--f-sans); letter-spacing: 1.2px; text-transform: uppercase; color: var(--c-text-2); cursor: pointer; }
+.auth-tabs button.on { color: var(--c-brand); border-bottom-color: var(--c-brand); }
+.auth-tabs button:hover { color: var(--c-brand); }
 
 /* Khung ảnh sản phẩm dùng chung: ảnh crawl có tỷ lệ (500x500, 500x597) và màu nền (trắng, #F5F5F3)
    khác nhau. Khung luôn vuông, ảnh nằm trọn trong khung; brightness đưa cả 2 màu nền về trắng,
@@ -345,3 +370,198 @@ textarea.input { height: auto; padding: 10px 14px; }
 .card h3 { overflow-wrap: anywhere; }
 .btn.filter-toggle { display: none; }
 @media (max-width: 760px) { .hero-product { display: none; } .btn.filter-toggle { display: inline-flex; } }
+
+/* Rê chuột vào ảnh sản phẩm: ảnh gen (ảnh chụp có bối cảnh) hiện đè lên ảnh gốc, phủ kín khung */
+.card .img, .gallery .main { position: relative; }
+.card .img img.hover-img, .gallery .main img.hover-img {
+  position: absolute; inset: 0; z-index: 1; padding: 0; object-fit: cover;
+  filter: none; mix-blend-mode: normal; opacity: 0; transition: opacity .35s ease, transform .3s;
+}
+.card.has-hover:hover .img img.hover-img, .gallery .main.has-hover:hover img.hover-img { opacity: 1; }
+.card .img .badge { z-index: 2; }
+
+/* ===== Cập nhật theo góp ý + Figma (11/2026) ===== */
+
+/* Header: menu có "Trang chủ", mục "Sản phẩm" xổ menu lớn khi rê chuột / focus */
+.nav { align-items: center; white-space: nowrap; }
+.nav-item { display: flex; align-items: center; align-self: stretch; }
+.mega { display: none; position: absolute; left: 0; right: 0; top: 100%; background: #fff; border-top: 1px solid var(--c-bg-muted); border-bottom: 1px solid var(--c-border); box-shadow: 0 18px 30px rgba(43,42,41,.08); white-space: normal; font: 400 15px/22px var(--f-sans); max-height: calc(100vh - 110px); overflow-y: auto; z-index: 30; }
+.has-mega:hover > .mega, .has-mega:focus-within > .mega { display: block; }
+.has-mega.closed > .mega { display: none; }
+.has-mega > a { display: flex; align-items: center; height: 70px; }
+.mega .container { display: block; height: auto; padding-top: 28px; padding-bottom: 20px; }
+.mega-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
+.mega-cols.with-sale { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(240px, 1.25fr); }
+.mega h5 { font: 500 11px/16px var(--f-sans); letter-spacing: 1.5px; text-transform: uppercase; color: var(--c-text-2); margin: 0 0 6px; padding-bottom: 10px; border-bottom: 1px solid var(--c-border); }
+.mega h5:not(:first-child) { margin-top: 22px; }
+.mega-cols a:not(.link):not(.mega-sale-item) { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; text-decoration: none; }
+.mega-cols a:not(.link):not(.mega-sale-item):hover span { text-decoration: underline; text-underline-offset: 4px; }
+.mega-cols a small { color: var(--c-text-2); font-size: 13px; }
+.mega-sale { background: var(--c-bg-soft); padding: 20px; align-self: start; }
+.mega-sale h4 { font-size: 22px; line-height: 28px; margin: 4px 0 12px; }
+.mega-sale-item { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; padding: 8px 0; text-decoration: none; }
+.mega-sale-item .thumb { width: 48px; height: 48px; background: #fff; display: flex; }
+.mega-sale-item .thumb img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+.mega-sale-item .name { display: block; font-size: 14px; }
+.mega-sale-item s { color: var(--c-text-2); }
+.mega-sale-item em { font-style: normal; color: var(--c-sale); }
+.mega-sale .link { display: inline-block; margin-top: 10px; }
+.mega-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 32px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--c-bg-muted); }
+.mega-chips, .mega-all { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mega-chips .chip { text-decoration: none; padding: 6px 14px; }
+.mega-chips .chip:hover { background: var(--c-border); }
+
+/* Thẻ sản phẩm: link ở tên phủ kín thẻ, nút "Thêm vào giỏ" nằm trên */
+.card { position: relative; }
+.card h3 a { text-decoration: none; }
+.card h3 a::after { content: ""; position: absolute; inset: 0; z-index: 3; }
+.card h3 a:focus-visible { outline: none; }
+.card:has(h3 a:focus-visible) { outline: 2px solid var(--c-brand); outline-offset: -2px; }
+.card .body { gap: 6px; }
+.card .tags { margin-top: 4px; padding-top: 0; }
+.card .price { margin-top: auto; padding-top: 6px; }
+.card .add-btn { position: relative; z-index: 4; margin-top: 10px; min-height: 40px; }
+.card .add-btn.out { background: var(--c-bg-muted); border-color: var(--c-bg-muted); color: var(--c-text-2); opacity: 1; }
+
+/* Bộ lọc dạng thu gọn được */
+.filters fieldset.fgroup { border-bottom: 1px solid var(--c-bg-muted); margin: 0; padding: 0; min-width: 0; }
+.filters fieldset.fgroup:first-child { border-top: 1px solid var(--c-bg-muted); }
+.filters .fgroup h4 { margin: 0; font: inherit; letter-spacing: 0; text-transform: none; color: inherit; }
+.fhead { width: 100%; display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 14px 0; cursor: pointer; font: 500 14px/20px var(--f-sans); color: var(--c-brand); text-align: left; }
+.fhead span:first-child { flex: 1; }
+.fcount { background: var(--c-dark); color: #fff; font-size: 11px; line-height: 18px; min-width: 18px; padding: 0 5px; text-align: center; }
+.fhead i { width: 8px; height: 8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-3px); transition: transform .2s; flex: none; }
+.fgroup.open .fhead i { transform: rotate(-135deg) translate(-2px, -1px); }
+.fbody { display: none; padding: 0 0 14px; }
+.fgroup.open .fbody { display: block; }
+.price-inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; margin: 4px 0 10px; }
+.price-inputs .input { padding: 0 10px; min-width: 0; }
+.price-range .err { color: var(--c-error); font-size: 13px; line-height: 18px; margin-bottom: 8px; }
+.price-range .err:empty { display: none; }
+
+/* Phân trang */
+.pager { align-items: center; flex-wrap: wrap; }
+.pg-step { text-decoration: none; font-size: 14px; padding: 0 8px; }
+.pg-step:hover { text-decoration: underline; }
+.pg-step.off { color: var(--c-border); pointer-events: none; }
+
+/* Quản trị – Voucher & khuyến mãi */
+.nowrap { white-space: nowrap; }
+.status.s-off { background: var(--c-warning); color: #fff; }
+.link.danger { color: var(--c-error); }
+.link[disabled] { color: var(--c-border); cursor: not-allowed; text-decoration: none; }
+.vtabs { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--c-border); max-width: 100%; overflow-x: auto; }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 0; cursor: pointer; font-size: 14px; color: var(--c-text-2); white-space: nowrap; }
+.tabs button.on { color: var(--c-brand); border-bottom-color: var(--c-brand); font-weight: 500; }
+.vfilters .field { min-width: 0; }
+.vfilters #vq { width: 260px; }
+.vtable td { vertical-align: top; }
+.vtable .vcode { min-width: 180px; max-width: 280px; }
+.vtable .hbar { width: 72px; margin: 6px 0 0; }
+.promo { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; margin-top: 16px; }
+.promo-lines { display: flex; flex-direction: column; }
+.promo-lines .eyebrow { padding: 0 12px 8px; border-bottom: 1px solid var(--c-bg-muted); margin-bottom: 4px; }
+.promo-lines button { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; background: none; border: 0; padding: 10px 12px; cursor: pointer; font-size: 14px; }
+.promo-lines button small { display: block; color: var(--c-text-2); font-size: 12px; line-height: 16px; }
+.promo-lines button.on { background: var(--c-bg-muted); }
+.promo-main .empty { height: 100%; min-height: 220px; display: flex; flex-direction: column; justify-content: center; }
+.promo-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.promo-head h3 { margin: 0; }
+.promo-bulk { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--c-bg-soft); padding: 14px 16px; margin-bottom: 12px; }
+.promo-bulk-ctl { display: flex; align-items: center; gap: 8px; }
+.promo-bulk-ctl .input { width: 80px; }
+
+/* Màn hình hẹp / chia đôi cửa sổ: chữ không bị bóp, không tràn */
+@media (max-width: 1100px) {
+  .nav { gap: 20px; }
+  .mega-cols, .mega-cols.with-sale { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mega-sale { grid-column: 1 / -1; }
+  .listing { grid-template-columns: 200px minmax(0, 1fr); gap: 28px; }
+  .grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  .admin { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .admin aside { padding: 12px var(--gutter); display: flex; align-items: center; gap: 24px; }
+  .admin aside .logo { padding: 0; flex: none; }
+  .admin aside nav { display: flex; overflow-x: auto; min-width: 0; }
+  .admin aside nav a { white-space: nowrap; margin-top: 0 !important; }
+  .admin-top { flex-wrap: wrap; gap: 8px; padding: 14px var(--gutter); }
+  .admin-body { padding: 16px var(--gutter) 40px; }
+  .promo { grid-template-columns: 180px minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .nav { gap: 14px; font-size: 14px; }
+  .header-icons { gap: 10px; }
+}
+@media (max-width: 760px) {
+  .mega { display: none !important; }
+  .nav-item { display: block; }
+  .has-mega > a { height: auto; padding: 12px 0; border-bottom: 1px solid var(--c-bg-muted); }
+  .admin aside { flex-direction: column; align-items: stretch; gap: 8px; }
+  .promo { grid-template-columns: 1fr; }
+  .promo-lines { flex-direction: row; overflow-x: auto; }
+  .promo-lines .eyebrow { display: none; }
+  .promo-lines button { white-space: nowrap; }
+  .vfilters #vq { width: 100%; }
+  .vfilters .field { flex: 1 1 100%; }
+  .listing { grid-template-columns: 1fr; gap: 16px; }
+  .card .add-btn { padding: 0 8px; font-size: 14px; }
+}
+.nav .mega a:hover, .nav .mega a.btn { text-decoration: none; }
+@media (max-width: 1100px) { .admin main { min-height: calc(100vh - 64px); } }
+
+/* ===== Góp ý 08/11/2026 ===== */
+/* Hero cao theo đúng tỉ lệ ảnh (khung Figma 1440 x 640) để không bị cắt hình */
+.hero { min-height: 0; aspect-ratio: 1200 / 533; padding: 0 0 64px; }
+@media (max-width: 1100px) { .hero { aspect-ratio: auto; min-height: max(440px, 44.4vw); padding-bottom: 48px; } }
+@media (max-width: 760px) { .hero { aspect-ratio: auto; min-height: 420px; } }
+
+/* Ô sắp xếp / chọn: mũi tên riêng như Figma thay cho mũi tên mặc định của hệ điều hành */
+select.input { appearance: none; -webkit-appearance: none; padding-right: 40px; cursor: pointer;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23333' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 14px center; }
+#sort { min-width: 220px; border-color: var(--c-border-strong); }
+
+/* Màn hình chia đôi (761–1100px): logo sang trái, menu ở giữa, biểu tượng bên phải -> không đè lên nhau */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .site-header > .container { grid-template-columns: auto 1fr auto; column-gap: 28px; }
+  .site-header > .container > .logo { order: -1; }
+  .site-header .logo-img { height: 32px; }
+}
+
+/* Tìm theo vấn đề tóc: 2 tab Tình trạng tóc / Tình trạng da đầu, ảnh chụp thực tế phủ kín khung */
+.concern-tabs { display: flex; gap: 28px; border-bottom: 1px solid var(--c-bg-muted); margin: -8px 0 24px; }
+.concern-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 0; font: 500 15px/20px var(--f-sans); color: var(--c-text-2); cursor: pointer; }
+.concern-tabs button.on { color: var(--c-brand); border-bottom-color: var(--c-brand); }
+#concerns-hair { grid-template-columns: repeat(5, 1fr); }
+#concerns-scalp { grid-template-columns: repeat(4, 1fr); }
+.concern.photo .thumb { aspect-ratio: 3 / 4; background: var(--c-bg-muted); }
+.concern.photo .thumb img { padding: 0; object-fit: cover; filter: none; mix-blend-mode: normal; transition: transform .4s; }
+.concern.photo:hover .thumb img { transform: scale(1.04); }
+.concern.photo div:last-child { align-items: flex-start; }
+.concern.photo small { display: block; font: 400 13px/18px var(--f-sans); color: var(--c-text-2); margin-top: 2px; }
+@media (max-width: 1100px) { #concerns-hair, #concerns-scalp { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 760px) { #concerns-hair, #concerns-scalp { grid-template-columns: repeat(2, 1fr); } }
+
+/* Trang Về Davines (2 mục: Giới thiệu, Giao hàng và thanh toán) theo Figma */
+.about-page { padding-top: 56px; }
+.about.account { grid-template-columns: 260px minmax(0, 720px); gap: 80px; justify-content: center; }
+.about-title { font-size: 26px; line-height: 34px; margin-bottom: 20px; }
+.about-body h1 { font-size: 42px; line-height: 52px; font-weight: 400; margin-bottom: 16px; }
+.about-body .lead { font-size: 17px; line-height: 28px; color: var(--c-text-2); margin: 0 0 36px; }
+.about-body h2 { font-size: 26px; line-height: 34px; margin: 36px 0 12px; }
+.about-body p { color: var(--c-text-2); line-height: 28px; }
+.about-body .btn { margin-top: 8px; }
+.about-note { margin-top: 32px; }
+.policy { margin: 0; border-top: 1px solid var(--c-bg-muted); }
+.policy dt, .policy dd { margin: 0; padding: 16px 0; border-bottom: 1px solid var(--c-border); font-size: 14px; line-height: 22px; }
+.policy { display: grid; grid-template-columns: 200px 1fr; column-gap: 32px; }
+.policy dt { color: var(--c-brand); }
+.policy dd { color: var(--c-text-2); }
+@media (max-width: 1100px) { .about.account { grid-template-columns: 220px minmax(0, 1fr); gap: 40px; } }
+@media (max-width: 760px) {
+  .about-page { padding-top: 24px; }
+  .about.account { grid-template-columns: 1fr; gap: 16px; }
+  .about-body h1 { font-size: 32px; line-height: 40px; }
+  .policy { grid-template-columns: 1fr; }
+  .policy dt { border-bottom: 0; padding-bottom: 4px; font-weight: 600; }
+  .policy dd { padding-top: 0; }
+}

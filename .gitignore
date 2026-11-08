@@ -1,0 +1,9 @@
+# Cấu hình riêng của máy / công cụ
+.claude/
+.vercel/
+node_modules/
+__pycache__/
+*.pyc
+*.tmp
+# Ảnh chụp của bộ test tự động
+tests/out_*/

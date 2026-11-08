@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sản phẩm – Davines Việt Nam</title>
-  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
-  <link rel="icon" type="image/png" href="assets/img/favicon.png">
-  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/img/brand/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/brand/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/brand/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -61,7 +61,10 @@
       { key: "collection", label: "Dòng sản phẩm", values: (p) => [p.collection] },
       { key: "kind", label: "Loại sản phẩm", values: (p) => [p.kind] },
     ];
-    const PRICES = [["0-600000", "Dưới 600.000 ₫"], ["600000-1300000", "600.000 – 1.300.000 ₫"], ["1300000-99999999", "Trên 1.300.000 ₫"]];
+    // Khoảng giá: 1 khoảng "từ-đến" trong URL (?price=500000-1000000), nhập ở ô Từ / Đến hoặc chọn từ menu Sản phẩm
+    const NO_MAX = 99999999;
+    const vnd = (n) => n.toLocaleString("vi-VN");
+    const priceLabel = (r) => { const [a, b] = r.split("-").map(Number); return b >= NO_MAX ? `Từ ${vnd(a)} ₫` : !a ? `Dưới ${vnd(b)} ₫` : `${vnd(a)} – ${vnd(b)} ₫`; };
 
     // Trạng thái lọc đọc từ URL -> có thể chia sẻ link, nút Back hoạt động đúng
     const params = new URLSearchParams(location.search);
@@ -71,7 +74,8 @@
       q: (rawQ || "").trim(),
       sort: params.get("sort") || "new",
       page: +params.get("page") || 1,
-      price: params.getAll("price"),
+      price: params.getAll("price").filter((r) => /^\d+-\d+$/.test(r)).slice(0, 1),
+      sale: params.get("sale") === "1",
       ...Object.fromEntries(GROUPS.map((g) => [g.key, params.getAll(g.key)])),
     };
 
@@ -84,6 +88,7 @@
       if (state.sort !== "new") p.set("sort", state.sort);
       if (state.page > 1) p.set("page", state.page);
       [...GROUPS.map((g) => g.key), "price"].forEach((k) => state[k].forEach((v) => p.append(k, v)));
+      if (state.sale) p.set("sale", "1");
       history.replaceState(null, "", "products.html" + (p.toString() ? "?" + p : ""));
     }
 
@@ -102,14 +107,15 @@
 
     // Dung tích rẻ nhất nằm trong khoảng giá đang chọn (sản phẩm khớp nếu có ít nhất 1 dung tích trong khoảng)
     function variantInRange(p) {
-      const inRange = p.variants.filter((v) => { const u = Store.unitPrice(p, v); return state.price.some((r) => { const [a, b] = r.split("-").map(Number); return u >= a && u < b; }); });
-      return inRange.sort((x, y) => x.price - y.price)[0];
+      const [a, b] = state.price[0].split("-").map(Number);
+      return UI.priceVariant(p, a, b);
     }
 
     // Lọc: giữa các nhóm là VÀ, trong cùng nhóm là HOẶC -> sản phẩm luôn khớp ít nhất 1 lựa chọn của mỗi nhóm đang bật
     function filtered() {
       let list = all.filter((p) => GROUPS.every((g) => matchGroup(g, p)));
       if (state.price.length) list = list.filter(variantInRange);
+      if (state.sale) list = list.filter((p) => p.sale > 0);
       if (state.q.length >= 2) { const q = norm(state.q); list = list.filter((p) => norm(`${p.name} ${p.collection} ${p.short} ${p.description}`).includes(q)); }
       const price = (p) => (state.price.length ? Store.unitPrice(p, variantInRange(p)) : Store.priceRange(p).min);
       // Sản phẩm khớp đúng loại tóc/da đầu đang chọn đứng trước sản phẩm "Mọi loại tóc"
@@ -121,17 +127,49 @@
       return list.sort((a, b) => out(a) - out(b) || generic(a) - generic(b) || sorters[state.sort](a, b));
     }
 
+    // Mỗi nhóm lọc là một mục thu gọn được; nhóm đầu tiên và nhóm đang có lựa chọn mở sẵn
+    const opened = new Set(["needs", ...GROUPS.filter((g) => state[g.key].length).map((g) => g.key), ...(state.price.length ? ["price"] : []), ...(state.sale ? ["sale"] : [])]);
     function renderFilters() {
+      const group = (key, label, body, n) => `
+        <fieldset class="fgroup${opened.has(key) ? " open" : ""}" data-g="${key}">
+          <h4><button type="button" class="fhead" aria-expanded="${opened.has(key)}"><span>${label}</span>${n ? `<span class="fcount">${n}</span>` : ""}<i aria-hidden="true"></i></button></h4>
+          <div class="fbody">${body}</div>
+        </fieldset>`;
+      const [pa, pb] = state.price.length ? state.price[0].split("-").map(Number) : [0, NO_MAX];
       UI.$("#filters").innerHTML = GROUPS.map((g) => {
-        const values = [...new Set(all.flatMap(g.values))].sort();
-        return `<fieldset><h4>${g.label}</h4>${values.map((v) => `<label class="check"><input type="checkbox" data-k="${g.key}" value="${UI.esc(v)}" ${state[g.key].includes(v) ? "checked" : ""}> ${UI.esc(v)}</label>`).join("")}</fieldset>`;
-      }).join("") + `<fieldset><h4>Khoảng giá</h4>${PRICES.map(([v, l]) => `<label class="check"><input type="checkbox" data-k="price" value="${v}" ${state.price.includes(v) ? "checked" : ""}> ${l}</label>`).join("")}</fieldset>`;
-      UI.$$("#filters input").forEach((cb) => (cb.onchange = () => {
-        const arr = state[cb.dataset.k];
-        cb.checked ? arr.push(cb.value) : arr.splice(arr.indexOf(cb.value), 1);
-        state.page = 1;
-        render();
+        const values = [...new Set(all.flatMap(g.values))].sort((a, b) => (a === ALL_HAIR) - (b === ALL_HAIR) || a.localeCompare(b));
+        return group(g.key, g.label, values.map((v) => `<label class="check"><input type="checkbox" data-k="${g.key}" value="${UI.esc(v)}" ${state[g.key].includes(v) ? "checked" : ""}> ${UI.esc(v)}</label>`).join(""), state[g.key].length);
+      }).join("")
+        + (all.some((p) => p.sale > 0) ? group("sale", "Ưu đãi", `<label class="check"><input type="checkbox" data-k="sale" ${state.sale ? "checked" : ""}> Đang giảm giá</label>`, state.sale ? 1 : 0) : "")
+        + group("price", "Khoảng giá (₫)", `
+          <form class="price-range" id="price-form" novalidate>
+            <div class="price-inputs"><input class="input" name="min" inputmode="numeric" placeholder="Từ" value="${pa ? vnd(pa) : ""}" aria-label="Giá từ"><span>–</span><input class="input" name="max" inputmode="numeric" placeholder="Đến" value="${pb < NO_MAX ? vnd(pb) : ""}" aria-label="Giá đến"></div>
+            <div class="err" id="price-err"></div>
+            <button class="btn btn-outline btn-block">Áp dụng</button>
+          </form>`, state.price.length);
+      UI.$$("#filters .fhead").forEach((b) => (b.onclick = () => {
+        const fs = b.closest("fieldset"), open = fs.classList.toggle("open");
+        b.setAttribute("aria-expanded", open);
+        open ? opened.add(fs.dataset.g) : opened.delete(fs.dataset.g);
       }));
+      UI.$$("#filters input[type=checkbox]").forEach((cb) => (cb.onchange = () => {
+        if (cb.dataset.k === "sale") state.sale = cb.checked;
+        else { const arr = state[cb.dataset.k]; cb.checked ? arr.push(cb.value) : arr.splice(arr.indexOf(cb.value), 1); }
+        state.page = 1;
+        renderFilters(); render();
+      }));
+      // Ô giá: gõ số có hoặc không có dấu chấm; để trống 1 ô = không giới hạn phía đó
+      UI.$$("#price-form .input").forEach((i) => (i.oninput = () => { const d = i.value.replace(/\D/g, "").slice(0, 8); i.value = d ? vnd(+d) : ""; }));
+      UI.$("#price-form").onsubmit = (e) => {
+        e.preventDefault();
+        const num = (v) => { const d = v.replace(/\D/g, ""); return d === "" ? null : +d; };
+        const a = num(e.target.min.value), b = num(e.target.max.value);
+        const msg = a !== null && b !== null && a >= b ? "Giá “Đến” phải lớn hơn giá “Từ”." : "";
+        UI.$("#price-err").textContent = msg;
+        if (msg) return;
+        state.price = a === null && b === null ? [] : [`${a || 0}-${b === null ? NO_MAX : b}`];
+        state.page = 1; renderFilters(); render();
+      };
     }
 
     function render() {
@@ -139,23 +177,28 @@
       const list = filtered();
       const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
       state.page = Math.min(state.page, pages);
-      const chips = [...GROUPS.map((g) => g.key), "price"].flatMap((k) => state[k].map((v) => ({ k, v, label: k === "price" ? PRICES.find((x) => x[0] === v)?.[1] : v })));
+      const chips = [...GROUPS.map((g) => g.key), "price"].flatMap((k) => state[k].map((v) => ({ k, v, label: k === "price" ? priceLabel(v) : v })));
+      if (state.sale) chips.push({ k: "sale", v: "1", label: "Đang giảm giá" });
       if (state.q) chips.unshift({ k: "q", v: state.q, label: `“${state.q}”` });
-      UI.$("#active").innerHTML = chips.length ? `<span class="muted">Đang lọc:</span>${chips.map((c) => `<button class="chip" data-k="${c.k}" data-v="${UI.esc(c.v)}">${UI.esc(c.label)} ✕</button>`).join("")}<button class="link" id="clear">Xóa tất cả</button>` : "";
+      UI.$("#active").innerHTML = chips.length ? `<span class="muted">Đang lọc:</span>${chips.map((c) => `<button class="chip" data-k="${c.k}" data-v="${UI.esc(c.v)}" aria-label="Bỏ lọc ${UI.esc(c.label)}">${UI.esc(c.label)} <span aria-hidden="true">✕</span></button>`).join("")}<button class="link" id="clear">Xóa tất cả</button>` : "";
       UI.$$("#active .chip").forEach((b) => (b.onclick = () => {
-        if (b.dataset.k === "q") { state.q = ""; UI.$("#q").value = ""; } else state[b.dataset.k] = state[b.dataset.k].filter((x) => x !== b.dataset.v);
+        if (b.dataset.k === "q") { state.q = ""; UI.$("#q").value = ""; } else if (b.dataset.k === "sale") state.sale = false; else state[b.dataset.k] = state[b.dataset.k].filter((x) => x !== b.dataset.v);
         state.page = 1; renderFilters(); render();
       }));
-      if (UI.$("#clear")) UI.$("#clear").onclick = () => { [...GROUPS.map((g) => g.key), "price"].forEach((k) => (state[k] = [])); state.q = ""; UI.$("#q").value = ""; state.page = 1; renderFilters(); render(); };
+      if (UI.$("#clear")) UI.$("#clear").onclick = () => { [...GROUPS.map((g) => g.key), "price"].forEach((k) => (state[k] = [])); state.sale = false; state.q = ""; UI.$("#q").value = ""; state.page = 1; renderFilters(); render(); };
 
       const only = state.collection.length === 1 && chips.length === 1 ? state.collection[0] : null;
       UI.$("#title").textContent = only || (chips.length ? "Kết quả lọc" : "Tất cả sản phẩm");
       UI.$("#count").textContent = `${list.length} sản phẩm`;
       UI.$("#grid").innerHTML = list.length
-        ? list.slice((state.page - 1) * PER_PAGE, state.page * PER_PAGE).map((p) => UI.productCard(p, state.price.length ? variantInRange(p) : null)).join("")
+        ? list.slice((state.page - 1) * PER_PAGE, state.page * PER_PAGE).map((p) => UI.productCard(p, state.price.length ? variantInRange(p) : null, { buy: true })).join("")
         : `<div class="empty" style="grid-column:1/-1"><h3>Không tìm thấy sản phẩm phù hợp</h3><p class="muted">Thử bỏ bớt bộ lọc hoặc dùng từ khóa khác.</p><button class="btn btn-outline" onclick="document.getElementById('clear')?.click()">Xóa bộ lọc</button></div>`;
-      UI.$("#pager").innerHTML = pages > 1 ? Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === state.page ? "on" : ""}" data-p="${i + 1}">${i + 1}</button>`).join("") : "";
-      UI.$$("#pager button").forEach((b) => (b.onclick = () => { state.page = +b.dataset.p; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+      UI.$("#pager").innerHTML = pages > 1
+        ? `<a class="pg-step${state.page === 1 ? " off" : ""}" href="#" data-p="${state.page - 1}">‹ Trang trước</a>`
+          + Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === state.page ? "on" : ""}" data-p="${i + 1}"${i + 1 === state.page ? ' aria-current="page"' : ""}>${i + 1}</button>`).join("")
+          + `<a class="pg-step${state.page === pages ? " off" : ""}" href="#" data-p="${state.page + 1}">Trang sau ›</a>`
+        : "";
+      UI.$$("#pager [data-p]").forEach((b) => (b.onclick = (e) => { e.preventDefault(); if (b.classList.contains("off")) return; state.page = +b.dataset.p; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
     }
 
     UI.$("#q").value = rawQ !== null && UI.keywordError(rawQ) ? rawQ : state.q;

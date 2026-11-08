@@ -1,9 +1,9 @@
-/* Lớp dữ liệu của web Davines: lưu toàn bộ "cơ sở dữ liệu" trong localStorage.
+/* Lớp dữ liệu của web Davines: lưu "cơ sở dữ liệu" xuống file CSV qua server.js (hoặc localStorage nếu không có server).
  * Mọi quy tắc nghiệp vụ (giá, phí ship, voucher, tồn kho, mã đơn) nằm ở đây
  * để các trang chỉ việc gọi Store.xxx và luôn ra cùng một kết quả. */
 (function () {
   const DB_KEY = "davines_db_v1";
-  const SEED_VERSION = 4; // tăng số này khi đổi dữ liệu mẫu -> trình duyệt tự tạo lại dữ liệu
+  const SEED_VERSION = 5; // tăng số này khi đổi dữ liệu mẫu -> trình duyệt tự tạo lại dữ liệu
   const SESSION_KEY = "davines_session";
   const ADMIN_KEY = "davines_admin_session";
   const GUEST_CART_KEY = "davines_guest_cart"; // sessionStorage: giỏ khách chỉ giữ trong lần truy cập
@@ -13,6 +13,7 @@
     freeShipFrom: 500000,   // tính trên tạm tính sau giảm giá
     codLimit: 2000000,      // COD chỉ cho đơn tổng thanh toán đến 2.000.000 đ
     maxPerVariant: 10,
+    maxAddresses: 10,     // BR-DC04: mỗi tài khoản lưu tối đa 10 địa chỉ
     vnpayHoldMinutes: 15,
   };
 
@@ -40,19 +41,20 @@
     const products = JSON.parse(JSON.stringify(window.DAVINES_SEED.products));
     // Khuyến mãi tự động theo sản phẩm (% giảm), quản trị có thể sửa ở trang Voucher & khuyến mãi
     const promos = { "dau-goi-nounou": 15, "dau-goi-love-smoothing": 10, "banh-goi-momo": 10 };
-    products.forEach((p) => { p.sale = promos[p.id] || 0; p.active = true; p.createdAt = p.kind === "Dầu gội" ? "2026-09-01" : "2026-10-15"; });
+    // Sản phẩm thêm sau (dầu xả, dưỡng tóc) đã có sẵn ngày lên kệ trong data.js
+    products.forEach((p) => { p.sale = promos[p.id] || 0; p.active = true; p.createdAt = p.createdAt || (p.kind === "Dầu gội" ? "2026-09-01" : "2026-10-15"); });
 
     const db = {
       version: SEED_VERSION,
       products,
       users: [
         { id: "u1", role: "customer", name: "Nguyễn Văn An", email: "an.nguyen@email.com", phone: "0912345678", birthday: "1998-03-14",
-          pass: hash("Davines@2026"), addresses: [{ id: "a1", name: "Nguyễn Văn An", phone: "0912345678", city: "TP. Hồ Chí Minh", ward: "Phường Bến Nghé", line: "45 Nguyễn Huệ", isDefault: true }], cart: [] },
+          gender: "", promo: false, pass: hash("Davines@2026"), addresses: [{ id: "a1", name: "Nguyễn Văn An", phone: "0912345678", city: "TP. Hồ Chí Minh", ward: "Phường Bến Nghé", line: "45 Nguyễn Huệ", isDefault: true }], cart: [] },
       ],
       admins: [{ id: "ad1", name: "Quản trị viên", email: "admin@davines.vn", pass: hash("Admin@2026") }],
       vouchers: [
         { code: "DAVINES10", type: "amount", value: 100000, minOrder: 1000000, maxDiscount: 0, start: "2026-10-01", end: "2026-12-31", limit: 500, used: 12, active: true, desc: "Giảm 100.000 đ cho đơn từ 1.000.000 đ" },
-        { code: "WELCOME15", type: "percent", value: 15, minOrder: 500000, maxDiscount: 150000, start: "2026-10-01", end: "2026-12-31", limit: 1000, used: 40, active: true, desc: "Giảm 15% (tối đa 150.000 đ) cho đơn từ 500.000 đ" },
+        { code: "WELCOME15", type: "percent", value: 15, minOrder: 500000, maxDiscount: 150000, start: "2026-10-01", end: "2026-12-31", limit: 1000, used: 40, active: true, firstOrderOnly: true, desc: "Giảm 15% (tối đa 150.000 đ) cho đơn đầu tiên từ 500.000 đ" },
         { code: "THANG9", type: "percent", value: 10, minOrder: 300000, maxDiscount: 100000, start: "2026-09-01", end: "2026-09-30", limit: 300, used: 300, active: true, desc: "Ưu đãi tháng 9 (đã hết hạn)" },
       ],
       orders: [],
@@ -67,7 +69,7 @@
   function seedOrders(db) {
     const r = rand(42);
     const names = ["Trần Thị Mai", "Lê Hoàng Nam", "Phạm Thu Hà", "Võ Minh Khoa", "Đặng Ngọc Lan", "Bùi Anh Tuấn", "Hoàng Yến Nhi", "Ngô Gia Bảo"];
-    const sellable = db.products.flatMap((p) => p.variants.map((v) => ({ p, v }))).filter((x) => x.v.stock > 0);
+    const sellable = db.products.filter((p) => p.createdAt <= "2026-10-31").flatMap((p) => p.variants.map((v) => ({ p, v }))).filter((x) => x.v.stock > 0); // đơn tháng 10 chỉ có hàng đã lên kệ
     for (let i = 0; i < 46; i++) {
       const day = 1 + Math.floor(r() * 30);
       const date = new Date(2026, 9, day, 8 + Math.floor(r() * 12), Math.floor(r() * 60));
@@ -105,18 +107,76 @@
     return path.slice(0, end + 1).map((s, i) => ({ status: s, at: new Date(date.getTime() + i * 26 * 3600000).toISOString() }));
   }
 
+  // Chạy bằng server.js: dữ liệu nằm trong các file CSV (thư mục data). Mở bằng Live Server: dùng localStorage như cũ.
+  let serverMode = false;
+  function api(method, body) {
+    try {
+      const x = new XMLHttpRequest();
+      x.open(method, "/api/db", false); // đồng bộ để dữ liệu ghi xong rồi trang mới được chuyển đi
+      if (body) x.setRequestHeader("Content-Type", "application/json");
+      x.send(body);
+      return { status: x.status, json: JSON.parse(x.responseText) };
+    } catch (e) { return null; }
+  }
+  function warn(msg) { console.warn(msg); if (window.UI) window.UI.toast(msg, "error"); }
   function load() {
+    const remote = api("GET");
+    if (remote && remote.status === 200 && "db" in remote.json) {
+      serverMode = true;
+      if (remote.json.db) return migrate(remote.json.db);
+      const db = seedDb(); // chưa có CSV: tạo dữ liệu mẫu rồi ghi xuống file
+      save(db);
+      return db;
+    }
     try {
       const raw = localStorage.getItem(DB_KEY);
-      if (raw) { const db = JSON.parse(raw); if (db.version === SEED_VERSION) return db; }
+      if (raw) { const db = JSON.parse(raw); if (db.version === SEED_VERSION) return migrate(db); }
     } catch (e) { /* hỏng dữ liệu -> tạo lại */ }
     const db = seedDb();
     save(db);
     return db;
   }
-  function save(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+  // Đổi SEED_VERSION khi dùng CSV: chỉ cập nhật danh mục sản phẩm mới, giữ tồn kho, giá giảm, trạng thái và toàn bộ đơn, tài khoản.
+  function upgradeProducts(db) {
+    const seed = JSON.parse(JSON.stringify(window.DAVINES_SEED.products));
+    const old = new Map(db.products.map((p) => [p.id, p]));
+    const products = seed.map((p) => {
+      const o = old.get(p.id);
+      old.delete(p.id);
+      p.sale = o ? o.sale : 0; p.active = o ? o.active : true; p.createdAt = o ? o.createdAt : p.createdAt || localDay(new Date());
+      p.variants.forEach((v) => { const ov = o && o.variants.find((x) => x.sku === v.sku); if (ov) { v.stock = ov.stock; v.price = ov.price; } });
+      return p;
+    });
+    db.products = products.concat([...old.values()]); // giữ sản phẩm do quản trị thêm
+    db.version = SEED_VERSION;
+    save(db);
+    return db;
+  }
+  // Cập nhật dữ liệu cũ đang lưu trong trình duyệt mà không xóa đơn/tài khoản đã tạo.
+  function migrate(db) {
+    const w = db.vouchers.find((v) => v.code === "WELCOME15");
+    if (w && w.firstOrderOnly === undefined) { w.firstOrderOnly = true; w.desc = "Giảm 15% (tối đa 150.000 đ) cho đơn đầu tiên từ 500.000 đ"; save(db); }
+    if (!db.resets) db.resets = [];
+    if (serverMode && db.version !== SEED_VERSION) return upgradeProducts(db);
+    return db;
+  }
+  function save(db) {
+    if (!serverMode) { localStorage.setItem(DB_KEY, JSON.stringify(db)); return; }
+    const r = api("POST", JSON.stringify(db));
+    if (!r || r.status !== 200) warn("Không ghi được dữ liệu xuống CSV. Hãy kiểm tra server.js còn đang chạy không.");
+    else if (r.json.pending && r.json.pending.length) warn(`Chưa ghi được ${r.json.pending.join(", ")} vì file đang mở. Hãy đóng file, dữ liệu sẽ tự được ghi.`);
+  }
   let DB = load();
   function commit() { save(DB); window.dispatchEvent(new CustomEvent("store:change")); }
+  // Quay lại tab này thì lấy dữ liệu mới nhất, tránh ghi đè đơn vừa được tạo ở tab hoặc trình duyệt khác.
+  function refresh() {
+    let next = null;
+    if (serverMode) { const r = api("GET"); if (r && r.status === 200 && r.json.db) next = migrate(r.json.db); }
+    else { try { const raw = localStorage.getItem(DB_KEY); if (raw) next = migrate(JSON.parse(raw)); } catch (e) { /* giữ dữ liệu hiện tại */ } }
+    if (next && JSON.stringify(next) !== JSON.stringify(DB)) { DB = next; window.dispatchEvent(new CustomEvent("store:change")); }
+  }
+  window.addEventListener("focus", refresh);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 
   // ---------- Sản phẩm ----------
   function unitPrice(p, v) { return Math.round(v.price * (100 - (p.sale || 0)) / 100 / 500) * 500; }
@@ -131,11 +191,20 @@
     return { min: Math.min(...prices), max: Math.max(...prices), multi: new Set(prices).size > 1 };
   }
   function inStock(p) { return p.variants.some((v) => v.stock > 0); }
+  // Mô tả bỏ phần dung tích (vd "– 1000ml") vì sản phẩm có nhiều dung tích, dung tích hiển thị ở nút chọn.
+  function cleanDesc(text) { return String(text || "").replace(/\s*[–-]\s*\d+\s*(ml|g)\b,?/i, ",").replace(/,\s*dạng túi/i, "").replace(/,\s*,/g, ",").replace(/^([^,]*),\s*$/, "$1"); }
 
   // ---------- Tài khoản ----------
   function currentUser() {
     const id = localStorage.getItem(SESSION_KEY);
     return id ? DB.users.find((u) => u.id === id) || null : null;
+  }
+  // Đăng nhập chung: tài khoản quản trị -> vào trang quản trị, thành viên -> vào trang khách.
+  function signIn(email, pass) {
+    const a = DB.admins.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
+    if (a) return a.pass === hash(pass) ? (sessionStorage.setItem(ADMIN_KEY, a.id), { ok: true, role: "admin" }) : { ok: false, error: "Email hoặc mật khẩu không đúng." };
+    const r = login(email, pass);
+    return r.ok ? { ...r, role: "customer" } : r;
   }
   function login(email, pass) {
     const u = DB.users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
@@ -154,11 +223,33 @@
   }
   function logout() { localStorage.removeItem(SESSION_KEY); window.dispatchEvent(new CustomEvent("store:change")); }
   function register(data) {
-    if (DB.users.some((u) => u.email.toLowerCase() === data.email.trim().toLowerCase())) return { ok: false, field: "email", error: "Email này đã được đăng ký." };
-    const u = { id: "u" + Date.now(), role: "customer", name: data.name.trim(), email: data.email.trim(), phone: data.phone.trim(), birthday: "", pass: hash(data.pass), addresses: [], cart: [] };
+    const em = data.email.trim().toLowerCase();
+    if (DB.users.some((u) => u.email.toLowerCase() === em) || DB.admins.some((a) => a.email.toLowerCase() === em)) return { ok: false, field: "email", exists: true, error: "Email này đã được đăng ký." };
+    const u = { id: "u" + Date.now(), role: "customer", name: data.name.trim(), email: data.email.trim(), phone: data.phone.trim(), birthday: "", gender: "", promo: !!data.promo, pass: hash(data.pass), addresses: [], cart: [] };
     DB.users.push(u);
     commit();
-    return login(u.email, data.pass);
+    // BR-TK04: đăng ký xong không tự đăng nhập, khách đăng nhập bằng email và mật khẩu vừa tạo.
+    return { ok: true, user: u };
+  }
+  // UC07 / BR-TK07: chỉ gửi liên kết khi email đã đăng ký. Bản demo không có máy chủ gửi mail
+  // nên liên kết được tạo và trả về để trang hiển thị trong "hộp thư mô phỏng".
+  function requestReset(email) {
+    const u = DB.users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
+    if (!u) return { ok: false, error: "Email chưa được đăng ký." };
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    DB.resets = (DB.resets || []).filter((r) => r.userId !== u.id && r.exp > Date.now());
+    DB.resets.push({ token, userId: u.id, exp: Date.now() + 30 * 60000 });
+    commit();
+    return { ok: true, token, email: u.email };
+  }
+  function resetInfo(token) { const r = (DB.resets || []).find((x) => x.token === token && x.exp > Date.now()); return r ? DB.users.find((u) => u.id === r.userId) : null; }
+  function resetPassword(token, newPass) {
+    const u = resetInfo(token);
+    if (!u) return { ok: false, error: "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn." };
+    u.pass = hash(newPass);
+    DB.resets = DB.resets.filter((x) => x.token !== token);
+    commit();
+    return { ok: true, email: u.email };
   }
   function updateProfile(patch) { Object.assign(currentUser(), patch); commit(); }
   function changePassword(oldPass, newPass) {
@@ -168,18 +259,20 @@
   }
   function saveAddress(addr) {
     const u = currentUser();
+    if (!addr.id && u.addresses.length >= RULES.maxAddresses) return { ok: false, error: `Bạn chỉ lưu được tối đa ${RULES.maxAddresses} địa chỉ. Hãy xóa bớt địa chỉ cũ trước khi thêm mới.` };
     const old = u.addresses.find((a) => a.id === addr.id);
     if (old && old.isDefault) addr.isDefault = true; // luôn giữ đúng 1 địa chỉ mặc định
     if (addr.isDefault || !u.addresses.length) u.addresses.forEach((a) => (a.isDefault = false));
     const i = u.addresses.findIndex((a) => a.id === addr.id);
     if (i >= 0) u.addresses[i] = addr; else u.addresses.push({ ...addr, id: "a" + Date.now(), isDefault: addr.isDefault || !u.addresses.length });
     commit();
+    return { ok: true };
   }
   function deleteAddress(id) {
     const u = currentUser();
     const wasDefault = u.addresses.find((a) => a.id === id)?.isDefault;
     u.addresses = u.addresses.filter((a) => a.id !== id);
-    if (wasDefault && u.addresses[0]) u.addresses[0].isDefault = true;
+    if (wasDefault && u.addresses.length) u.addresses[u.addresses.length - 1].isDefault = true; // BR-DC04: địa chỉ thêm gần nhất thành mặc định
     commit();
   }
 
@@ -243,7 +336,13 @@
   // ---------- Voucher & tổng tiền ----------
   function localDay(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
   function today() { return localDay(new Date()); }
-  function checkVoucher(code, subtotal) {
+  // Khách đã từng có đơn (theo tài khoản hoặc số điện thoại) -> không còn là đơn đầu tiên.
+  function hasOrdered(who) {
+    if (!who) return false;
+    const phone = (who.phone || "").trim();
+    return DB.orders.some((o) => (who.userId && o.userId === who.userId) || (phone && o.customer.phone === phone));
+  }
+  function checkVoucher(code, subtotal, who) {
     const v = DB.vouchers.find((x) => x.code.toUpperCase() === String(code).trim().toUpperCase());
     if (!v) return { ok: false, error: "Mã ưu đãi không tồn tại." };
     if (!v.active) return { ok: false, error: "Mã ưu đãi đã ngừng áp dụng." };
@@ -251,17 +350,18 @@
     if (t < v.start) return { ok: false, error: "Mã ưu đãi chưa đến thời gian áp dụng." };
     if (t > v.end) return { ok: false, error: "Mã ưu đãi đã hết hạn." };
     if (v.used >= v.limit) return { ok: false, error: "Mã ưu đãi đã hết lượt sử dụng." };
+    if (v.firstOrderOnly && hasOrdered(who)) return { ok: false, error: "Mã này chỉ áp dụng cho đơn hàng đầu tiên của tài khoản / số điện thoại." };
     if (subtotal < v.minOrder) return { ok: false, error: `Đơn hàng cần tối thiểu ${fmt(v.minOrder)} để dùng mã này.` };
     let discount = v.type === "percent" ? Math.round(subtotal * v.value / 100) : v.value;
     if (v.maxDiscount) discount = Math.min(discount, v.maxDiscount);
     return { ok: true, voucher: v, discount: Math.min(discount, subtotal) };
   }
-  function calcTotals(lines, voucherCode) {
+  function calcTotals(lines, voucherCode, who) {
     const items = lines.filter((l) => !l.unavailable);
     const subtotal = items.reduce((s, l) => s + l.price * l.qty, 0);
     let discount = 0, voucher = null, voucherError = null;
     if (voucherCode) {
-      const r = checkVoucher(voucherCode, subtotal);
+      const r = checkVoucher(voucherCode, subtotal, who);
       if (r.ok) { discount = r.discount; voucher = r.voucher.code; } else voucherError = r.error;
     }
     const afterDiscount = subtotal - discount;
@@ -293,11 +393,11 @@
       short.forEach((l) => setQty(l.sku, l.qty));
       return { ok: false, changed: true, error: short.map((l) => `${l.name} ${l.size} chỉ còn ${l.qty} sản phẩm`).join("; ") + ". Đơn hàng đã được cập nhật, vui lòng kiểm tra lại trước khi đặt." };
     }
-    const totals = calcTotals(lines, voucherCode);
-    if (expectedTotal != null && totals.total !== expectedTotal) return { ok: false, changed: true, error: `Tổng tiền đã thay đổi thành ${fmt(totals.total)} do giá hoặc ưu đãi vừa cập nhật. Vui lòng kiểm tra lại.` };
-    if (voucherCode && totals.voucherError) return { ok: false, error: totals.voucherError };
-    if (payment === "cod" && totals.total > RULES.codLimit) return { ok: false, error: `Thanh toán khi nhận hàng chỉ áp dụng cho đơn đến ${fmt(RULES.codLimit)}. Vui lòng chọn VNPay.` };
     const user = currentUser();
+    const totals = calcTotals(lines, voucherCode, { userId: user ? user.id : null, phone: customer.phone });
+    if (voucherCode && totals.voucherError) return { ok: false, voucherInvalid: true, error: `Mã ${String(voucherCode).toUpperCase()}: ${totals.voucherError} Mã đã được gỡ khỏi đơn, vui lòng kiểm tra lại tổng tiền.` };
+    if (expectedTotal != null && totals.total !== expectedTotal) return { ok: false, changed: true, error: `Tổng tiền đã thay đổi thành ${fmt(totals.total)} do giá hoặc ưu đãi vừa cập nhật. Vui lòng kiểm tra lại.` };
+    if (payment === "cod" && totals.total > RULES.codLimit) return { ok: false, error: `Thanh toán khi nhận hàng chỉ áp dụng cho đơn đến ${fmt(RULES.codLimit)}. Vui lòng chọn VNPay.` };
     const order = buildOrder(DB, { date: new Date(), lines, totals, voucher: totals.voucher, payment, userId: user ? user.id : null, customer });
     lines.forEach((l) => {
       const { p, v } = findVariant(l.sku);
@@ -358,6 +458,15 @@
     commit();
     return { ok: true };
   }
+  // Chỉ xóa được voucher chưa có lượt dùng; voucher đã dùng chỉ tắt để giữ lịch sử đơn và báo cáo
+  function deleteVoucher(code) {
+    const v = DB.vouchers.find((x) => x.code === code);
+    if (!v) return { ok: false, error: "Không tìm thấy voucher." };
+    if (v.used > 0) return { ok: false, error: "Voucher đã có lượt dùng, chỉ có thể tắt." };
+    DB.vouchers = DB.vouchers.filter((x) => x !== v);
+    commit();
+    return { ok: true };
+  }
 
   // ---------- Báo cáo ----------
   function report(from, to) {
@@ -388,16 +497,16 @@
   // ---------- Tiện ích ----------
   function fmt(n) { return Number(n || 0).toLocaleString("vi-VN") + " ₫"; }
   function statusLabel(k) { return (STATUS.find((s) => s.key === k) || {}).label || k; }
-  function reset() { localStorage.removeItem(DB_KEY); sessionStorage.removeItem(GUEST_CART_KEY); DB = load(); commit(); }
+  function reset() { localStorage.removeItem(DB_KEY); sessionStorage.removeItem(GUEST_CART_KEY); DB = serverMode ? seedDb() : load(); commit(); }
 
   window.Store = {
-    RULES, STATUS, NEXT_STATUS, fmt, statusLabel, unitPrice, priceRange, inStock,
+    RULES, STATUS, NEXT_STATUS, fmt, statusLabel, unitPrice, priceRange, inStock, cleanDesc,
     get db() { return DB; },
     products, product, findVariant,
-    today, currentUser, login, logout, register, updateProfile, changePassword, saveAddress, deleteAddress,
+    today, currentUser, signIn, login, logout, register, requestReset, resetInfo, resetPassword, hasOrdered, updateProfile, changePassword, saveAddress, deleteAddress,
     currentAdmin, adminLogin, adminLogout,
     cart, cartCount, addToCart, setQty, removeFromCart,
     checkVoucher, calcTotals, placeOrder, order, lookupOrder, myOrders, updateOrderStatus,
-    saveProduct, adjustStock, saveVoucher, report, reset,
+    saveProduct, adjustStock, saveVoucher, deleteVoucher, report, reset,
   };
 })();

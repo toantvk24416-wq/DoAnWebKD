@@ -36,6 +36,7 @@ const t = {
   logs,
   sleep,
   async viewport(w, h, mobile = false) {
+    t.dpr = mobile ? 2 : 1;
     await send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: mobile ? 2 : 1, mobile });
     await send("Emulation.setTouchEmulationEnabled", { enabled: mobile });
   },
@@ -58,7 +59,8 @@ const t = {
     if (full) {
       const m = await send("Page.getLayoutMetrics");
       const h = Math.min(Math.ceil(m.cssContentSize.height), 6000);
-      params = { format: "png", captureBeyondViewport: true, clip: { x: 0, y: 0, width: m.cssLayoutViewport.clientWidth, height: h, scale: 1 } };
+      // Màn hình điện thoại (mật độ ×2): chụp ở tỉ lệ 0.5 để ảnh không quá lớn làm Edge headless bị treo
+      params = { format: "png", captureBeyondViewport: true, clip: { x: 0, y: 0, width: m.cssLayoutViewport.clientWidth, height: h, scale: 1 / (t.dpr || 1) } };
     }
     const r = await send("Page.captureScreenshot", params);
     writeFileSync(path.join(outDir, name + ".png"), Buffer.from(r.data, "base64"));

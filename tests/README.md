@@ -11,3 +11,7 @@ node cdp.mjs t_mobile.mjs out_mobile
 ```
 
 Kết quả PASS/FAIL in ra màn hình, ảnh chụp nằm trong thư mục out_*.
+
+node cdp.mjs t_feedback.mjs out_feedback
+
+Test lưu CSV cần server riêng với thư mục dữ liệu tạm: đặt biến PORT và DATA_DIR giống nhau cho `node ../server.js` và `node cdp.mjs t_csv.mjs out_csv`.

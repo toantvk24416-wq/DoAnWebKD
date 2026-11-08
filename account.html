@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tài khoản của tôi – Davines Việt Nam</title>
-  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
-  <link rel="icon" type="image/png" href="assets/img/favicon.png">
-  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/img/brand/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/img/brand/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/brand/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -52,7 +52,6 @@
               <div class="field"><label>Ngày sinh</label><input class="input" name="birthday" type="date" value="${UI.esc(u.birthday)}" max="${Store.today()}"></div>
             </div>
             <div class="field"><label>Giới tính</label><div style="display:flex;gap:24px">${[["female", "Nữ"], ["male", "Nam"], ["other", "Khác"]].map(([k, l]) => `<label class="check"><input type="radio" name="gender" value="${k}" ${u.gender === k ? "checked" : ""}> ${l}</label>`).join("")}</div></div>
-            <label class="check" style="margin-bottom:16px"><input type="checkbox" name="promo" ${u.promo ? "checked" : ""}> Nhận tin khuyến mãi qua email</label>
             <button class="btn" id="save" disabled>Lưu thay đổi</button>
           </form>`;
         const f = UI.$("#f");
@@ -60,7 +59,7 @@
         f.onsubmit = (e) => {
           e.preventDefault();
           if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], birthday: [(v) => (v && v > Store.today() ? "Ngày sinh không được ở tương lai." : v && v < "1900-01-01" ? "Ngày sinh không hợp lệ." : "")] })) return;
-          Store.updateProfile({ name: f.name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value, gender: f.gender.value, promo: f.promo.checked });
+          Store.updateProfile({ name: f.name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value, gender: f.gender.value });
           UI.toast("Đã lưu thông tin cá nhân.");
           nav(); VIEWS.info();
         };

@@ -60,13 +60,21 @@ Mã ưu đãi demo: `DAVINES10` (−100.000 ₫, đơn từ 1.000.000 ₫), `WEL
 | `assets/js/data.js` | Dữ liệu sản phẩm ban đầu, sinh tự động từ `output/products.json` bằng `tools/build_data.py` |
 | `assets/js/store.js` | Toàn bộ quy tắc nghiệp vụ: giỏ hàng, giá, voucher, phí ship, đơn hàng, tồn kho, báo cáo |
 | `assets/js/ui.js` | Header, footer, thẻ sản phẩm, toast, modal, hóa đơn, kiểm tra form |
-| `assets/js/hover-images.js` | Bảng ảnh hover (ảnh gen) cho từng ảnh / dung tích, sinh tự động bằng `tools/build_hover_images.py` từ thư mục `web hinh anh`; ảnh đã thu nhỏ nằm ở `assets/img/products-gen/` |
+| `assets/js/hover-images.js` | Bảng ảnh hover (ảnh gen) cho từng ảnh / dung tích, sinh tự động bằng `tools/build_hover_images.py` từ thư mục `anh-goc/` |
 | `assets/css/style.css` | Style theo Style Guide Figma (Crimson Text + Hanken Grotesk) |
+| `assets/img/brand/` | Logo, favicon |
+| `assets/img/banners/` | Ảnh trang chủ lấy từ Figma (hero, Essential Haircare, Naturaltech) |
+| `assets/img/concerns/` | Ảnh các ô "Tìm theo vấn đề tóc" (tình trạng tóc, tình trạng da đầu), thu nhỏ từ `anh-goc/tinh-trang-*` |
+| `assets/img/products/` | Ảnh sản phẩm (đường dẫn lưu trong `product_variants.csv`, không đổi tên) |
+| `assets/img/products-gen/` | Ảnh hover đã thu nhỏ, do `tools/build_hover_images.py` tạo |
+| `anh-goc/` | Ảnh gốc + ảnh gen chưa xử lý: `dau-goi/<TÊN>/<dung tích>/`, `banh-goi/<TÊN>/`, `combo/<dung tích>/`, `dau-xa/<Tên sản phẩm>/`, `tinh-trang-toc/`, `tinh-trang-da-dau/`. Chỉ là đầu vào của script, server không cho tải qua web |
 | `*.html` | Trang cửa hàng: trang chủ, sản phẩm, chi tiết, giỏ, đặt hàng, thành công, tra cứu, đăng nhập/đăng ký, tài khoản, giới thiệu |
 | `admin/` | Trang quản trị (báo cáo, đơn hàng, sản phẩm, danh mục, tồn kho, voucher) |
 | `tests/` | Kịch bản test tự động |
 
 Thêm sản phẩm mới từ crawl: chạy lại `python tools/build_data.py`, rồi tăng số `SEED_VERSION` trong `assets/js/store.js`. Khi mở web, danh mục sản phẩm được cập nhật và vẫn giữ tồn kho, giá, đơn hàng, tài khoản.
+
+Thêm nhóm dầu xả / dưỡng tóc (27 sản phẩm): `python tools/add_dau_xa.py` (đọc ảnh trong `anh-goc/dau-xa/` và giá, SKU, mô tả trong `tools/dau_xa_davinesvietnam.json` lấy từ davinesvietnam.com), rồi `python tools/build_hover_images.py`. Nếu chạy lại `build_data.py` thì phải chạy lại `add_dau_xa.py` sau đó. 13 sản phẩm không bán trên davinesvietnam.com (các màu ALCHEMIC, ALCHEMIC Creative, DEDE Xịt dưỡng không xả, AUTHENTIC Kem dưỡng ẩm) đang dùng **giá tạm**, sửa lại trong Quản trị › Sản phẩm.
 
 ## Quy tắc nghiệp vụ đã cài
 - Phí giao 20.000 ₫, miễn phí khi tạm tính sau giảm giá từ 500.000 ₫; voucher không trừ vào phí ship.
@@ -78,4 +86,4 @@ Thêm sản phẩm mới từ crawl: chạy lại `python tools/build_data.py`, 
 - Hóa đơn, trang thành công, tra cứu đơn và lịch sử đơn dùng chung một khối tổng tiền nên luôn khớp nhau.
 
 ## Ảnh hover sản phẩm
-Rê chuột vào ảnh sản phẩm (thẻ ở trang chủ, trang sản phẩm và ảnh lớn ở trang chi tiết) sẽ hiện ảnh gen theo đúng dung tích đang xem. Thêm hoặc đổi ảnh trong `web hinh anh` (đặt tên `TEN_<dung tích>.jpg` và `TEN_da gen_<dung tích>.png` cùng thư mục) rồi chạy `python tools/build_hover_images.py`. Dung tích chưa có ảnh gen thì giữ ảnh gốc.
+Rê chuột vào ảnh sản phẩm (thẻ ở trang chủ, trang sản phẩm và ảnh lớn ở trang chi tiết) sẽ hiện ảnh gen theo đúng dung tích đang xem. Thêm hoặc đổi ảnh trong `anh-goc/` (đặt tên `TEN_<dung tích>.jpg` và `TEN_da gen_<dung tích>.png` cùng thư mục) rồi chạy `python tools/build_hover_images.py`. Dung tích chưa có ảnh gen thì giữ ảnh gốc.

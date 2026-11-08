@@ -11,7 +11,7 @@ export default async function (t, check) {
   await t.go(B + "product.html?id=dau-goi-prep");
   await t.js(`document.querySelector('.size-btn:not(.out)')?.click(); document.querySelector('#add').click()`);
   const prep = await t.js(`return Store.cart().map(l=>l.name+' '+l.size+'×'+l.qty).join(', ')`);
-  check("Thêm PREP (cũng thiếu SKU) tạo dòng giỏ riêng", prep.includes("PREP"), "Giỏ có: " + prep);
+  check("PREP đang hết hàng nên không vào giỏ", !prep.includes("PREP"), "Giỏ có: " + prep);
   await t.js(`sessionStorage.clear()`);
 
   // ---- Bảo vệ trang
@@ -36,7 +36,9 @@ export default async function (t, check) {
   await t.go(B + "login.html?mode=register");
   await t.js(`const f=document.querySelector('#f'); f.name.value='Lê Test'; f.email.value='le.test@email.com'; f.phone.value='0987654321'; f.pass.value='Matkhau123'; f.pass2.value='Matkhau123'; f.agree.checked=true; f.requestSubmit()`);
   await S(700);
-  check("Đăng ký xong tự đăng nhập", (await t.js(`return Store.currentUser()?.email`)) === "le.test@email.com");
+  check("Đăng ký xong KHÔNG tự đăng nhập, chuyển sang Đăng nhập (BR-TK04)", !(await t.js(`return Store.currentUser()?.email`)) && (await t.js(`return document.querySelector('#f').email.value`)) === "le.test@email.com");
+  await t.js(`const f=document.querySelector('#f'); f.pass.value='Matkhau123'; f.requestSubmit()`);
+  await S(700);
   check("Giỏ khách được giữ khi đăng ký", (await t.js(`return Store.cartCount()`)) === 1);
 
   // ---- Thông tin cá nhân
@@ -112,7 +114,10 @@ export default async function (t, check) {
   await t.js(`Store.logout()`);
   await t.go(B + "login.html");
   await t.js(`document.querySelector('#forgot').click(); await new Promise(r=>setTimeout(r,100)); const f=document.querySelector('#ff'); f.email.value='le.test@email.com'; f.requestSubmit()`);
-  check("(ghi chú) Quên mật khẩu chỉ là thông báo giả lập", true);
+  check("Quên mật khẩu: email đã đăng ký → có liên kết (hộp thư mô phỏng)", (await t.js(`return !!document.querySelector('a[href*="reset="]')`)));
+  await t.go(B + "login.html");
+  const notReg = await t.js(`document.querySelector('#forgot').click(); await new Promise(r=>setTimeout(r,100)); const f=document.querySelector('#ff'); f.email.value='khongco@email.com'; f.requestSubmit(); return document.querySelector('#ff .err')?.innerText`);
+  check("Quên mật khẩu: email chưa đăng ký → báo lỗi, không gửi", notReg?.includes("Email chưa được đăng ký"), notReg);
 
   // ---- Đơn hàng của khách vãng lai cùng email
   const guestSameEmail = await t.js(`return Store.db.orders.filter(o=>o.customer.email==='an.nguyen@email.com' && !o.userId).length`);

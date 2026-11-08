@@ -1,0 +1,11 @@
+# Vercel chỉ phục vụ trang tĩnh: không đưa dữ liệu CSV, máy chủ Node, công cụ, test, ảnh gốc và tài liệu lên web.
+# Trên Vercel web tự lưu dữ liệu vào trình duyệt (localStorage) vì không có server.js để ghi CSV.
+data/
+server.js
+chay-web.bat
+tools/
+tests/
+anh-goc/
+tai-lieu/
+README.md
+.claude/

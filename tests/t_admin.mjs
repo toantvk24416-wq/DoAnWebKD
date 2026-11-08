@@ -3,7 +3,7 @@ const S = (ms) => new Promise((r) => setTimeout(r, ms));
 export default async function (t, check) {
   await t.viewport(1440, 900);
   await t.go(B + "admin/index.html");
-  check("Chưa đăng nhập quản trị → về trang đăng nhập", (await t.js(`return location.pathname`)) === "/admin/login.html");
+  check("Chưa đăng nhập quản trị → về trang đăng nhập chung, tab Quản trị", (await t.js(`return location.pathname + location.search`)) === "/login.html?tab=admin");
   await t.js(`const f=document.querySelector('#f'); f.email.value='admin@davines.vn'; f.pass.value='Admin@2026'; f.requestSubmit()`);
   await S(800);
   await t.shot("20-admin-report", true);
@@ -103,11 +103,11 @@ export default async function (t, check) {
   await t.js(`document.querySelectorAll('.modal-back').forEach(m=>m.remove()); [...document.querySelectorAll('[data-x]')].find(b=>b.dataset.x==='DAVINES10').click()`);
   const off = await t.js(`return Store.checkVoucher('DAVINES10', 2000000).error`);
   check("Tắt voucher → báo đã ngừng áp dụng", off?.includes("ngừng"), off);
-  const sale = await t.js(`const i=document.querySelector('[data-sale]'); i.value='80'; i.onchange(); return i.value`);
+  const sale = await t.js(`document.querySelector('[data-vtab=promo]').click(); document.querySelector('[data-line]').click(); const i=document.querySelector('[data-sale]'); i.value='80'; i.onchange(); return i.value`);
   check("Giảm giá tự động > 50% bị chặn", sale !== "80", sale);
   await t.js(`document.querySelector('#logout').click(); await new Promise(r=>setTimeout(r,100)); document.querySelector('[data-ok]').click()`);
   await S(600);
-  check("Đăng xuất quản trị", (await t.js(`return location.pathname`)) === "/admin/login.html");
+  check("Đăng xuất quản trị", (await t.js(`return location.pathname`)) === "/login.html");
   const sessionKind = await t.js(`return 'sessionStorage'`);
   check("Phiên quản trị lưu sessionStorage: đóng tab là phải đăng nhập lại (ghi chú)", true, sessionKind);
 }

@@ -12,10 +12,11 @@ import shutil
 import unicodedata
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]          # thư mục "Đồ án web"
+WEB = Path(__file__).resolve().parents[1]  # thư mục web chứa server.js
+# Thư mục dữ liệu crawl "output": tìm ngược lên từ thư mục web, vì web có thể bị chuyển vào thư mục con
+ROOT = next(d for d in WEB.parents if (d / "output" / "products.json").exists())
 SRC_JSON = ROOT / "output" / "products.json"
 SRC_IMG = ROOT / "output" / "images"
-WEB = ROOT / "website"
 OUT_JS = WEB / "assets" / "js" / "data.js"
 OUT_IMG = WEB / "assets" / "img" / "products"
 # Công dụng và thành phần lấy từ Davines (theo id sản phẩm); "source" ghi nguồn, không đưa lên web

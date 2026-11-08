@@ -9,7 +9,7 @@ const path = require("path");
 const ROOT = __dirname;
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, "data"));
 const PORT = Number(process.env.PORT) || 3000;
-const BLOCKED = new Set(["data", "tools", "tests", "website", "node_modules"]); // không cho tải các thư mục này qua web
+const BLOCKED = new Set(["data", "tools", "tests", "website", "node_modules", "anh-goc", "tai-lieu"]); // không cho tải các thư mục này qua web
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".svg": "image/svg+xml", ".webp": "image/webp", ".ico": "image/x-icon" };
 
 // ---------- Cấu trúc các file CSV. Kiểu cột: s chuỗi, n số, b đúng/sai, l danh sách (ngăn bằng |), o chuỗi có thể rỗng (null) ----------

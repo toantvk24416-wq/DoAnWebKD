@@ -1,0 +1,4 @@
+﻿code,type,value,minOrder,maxDiscount,start,end,limit,used,active,firstOrderOnly,desc
+DAVINES10,amount,100000,1000000,0,2026-10-01,2026-12-31,500,12,true,false,Giảm 100.000 đ cho đơn từ 1.000.000 đ
+WELCOME15,percent,15,500000,150000,2026-10-01,2026-12-31,1000,40,true,true,Giảm 15% (tối đa 150.000 đ) cho đơn đầu tiên từ 500.000 đ
+THANG9,percent,10,300000,100000,2026-09-01,2026-09-30,300,300,true,false,Ưu đãi tháng 9 (đã hết hạn)
