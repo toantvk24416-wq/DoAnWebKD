@@ -112,6 +112,8 @@ export default async function (t, check) {
   check("Tắt voucher → báo đã ngừng áp dụng", off?.includes("ngừng"), off);
   const sale = await t.js(`document.querySelector('[data-vtab=promo]').click(); document.querySelector('[data-line]').click(); const i=document.querySelector('[data-sale]'); i.value='80'; i.onchange(); return i.value`);
   check("Giảm giá tự động > 50% bị chặn", sale !== "80", sale);
+  const per = await t.js(`const p=Store.product('dau-goi-momo'); const [a,b]=p.variants; [...document.querySelectorAll('[data-line]')].find(x=>x.dataset.line===p.collection).click(); const i=document.querySelector('[data-sale="'+a.sku+'"]'); i.value='20'; i.onchange(); const q=Store.product('dau-goi-momo'); const va=q.variants.find(v=>v.sku===a.sku), vb=q.variants.find(v=>v.sku===b.sku); return [va.sale, vb.sale, Store.unitPrice(q,va)===Math.round(va.price*0.8/500)*500, Store.unitPrice(q,vb)===vb.price, q.sale]`);
+  check("Giảm giá riêng từng dung tích: đổi 1 dung tích không ảnh hưởng dung tích còn lại", per[0] === 20 && per[1] === 0 && per[2] && per[3] && per[4] === 20, JSON.stringify(per));
   await t.js(`document.querySelector('#logout').click(); await new Promise(r=>setTimeout(r,100)); document.querySelector('[data-ok]').click()`);
   await S(600);
   check("Đăng xuất quản trị", (await t.js(`return location.pathname`)) === "/login.html");

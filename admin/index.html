@@ -152,12 +152,12 @@
           const list = found.slice((page - 1) * PER, page * PER);
           // Mỗi dung tích một dòng; các cột chung của sản phẩm (dòng, giảm, trạng thái, thao tác) gộp ô theo số dung tích
           const picOf = (p, v) => v.images[0] || p.variants.find((x) => x.images[0])?.images[0] || "";
-          $("#plist").innerHTML = `<table class="table admin-products"><thead><tr><th></th><th>Sản phẩm</th><th>Dung tích</th><th style="text-align:right">Giá</th><th style="text-align:right">Tồn</th><th>Dòng</th><th>Giảm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${list.map((p) => p.variants.map((v, i) => {
+          $("#plist").innerHTML = `<table class="table admin-products"><thead><tr><th></th><th>Sản phẩm</th><th>Dung tích</th><th style="text-align:right">Giá</th><th>Giảm</th><th style="text-align:right">Tồn</th><th>Dòng</th><th>Trạng thái</th><th></th></tr></thead><tbody>${list.map((p) => p.variants.map((v, i) => {
             const n = p.variants.length, span = n > 1 ? ` rowspan="${n}"` : "", pic = picOf(p, v);
             return `<tr class="${i < n - 1 ? "same-product" : ""}"><td>${pic ? `<button type="button" class="admin-thumb zoomable" data-zoom="${esc(pic)}" data-cap="${esc(p.name + " · " + v.size)}" aria-label="Phóng to ảnh ${esc(p.name)} ${esc(v.size)}"><img src="${img(pic)}" alt=""></button>` : `<div class="admin-thumb"></div>`}</td>
             <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.kind)} · ${esc(v.sku)}</div></td>
-            <td>${esc(v.size)}</td><td style="text-align:right;white-space:nowrap">${fmt(v.price)}</td><td style="text-align:right">${v.stock <= 0 ? `<span style="color:var(--c-error)">hết</span>` : v.stock}</td>
-            ${i ? "" : `<td${span}>${esc(p.collection)}</td><td${span}>${p.sale ? p.sale + "%" : "—"}</td><td${span}>${p.active ? `<span class="status s-delivered">Đang bán</span>` : `<span class="status">Ngừng bán</span>`}</td>
+            <td>${esc(v.size)}</td><td style="text-align:right;white-space:nowrap">${fmt(v.price)}</td><td>${Store.saleOf(p, v) ? Store.saleOf(p, v) + "%" : "—"}</td><td style="text-align:right">${v.stock <= 0 ? `<span style="color:var(--c-error)">hết</span>` : v.stock}</td>
+            ${i ? "" : `<td${span}>${esc(p.collection)}</td><td${span}>${p.active ? `<span class="status s-delivered">Đang bán</span>` : `<span class="status">Ngừng bán</span>`}</td>
             <td${span} style="white-space:nowrap"><button class="link small" data-e="${p.id}">Sửa</button> · <button class="link small" data-t="${p.id}">${p.active ? "Ngừng bán" : "Mở bán"}</button></td>`}</tr>`;
           }).join("")).join("") || `<tr><td colspan="9" class="muted" style="text-align:center;padding:32px">Không có sản phẩm phù hợp.</td></tr>`}</tbody></table>
             <div class="small muted" style="margin-top:12px">${found.length ? `Hiển thị ${(page - 1) * PER + 1}–${(page - 1) * PER + list.length} trong ${found.length} sản phẩm` : ""}</div>`;
@@ -311,41 +311,45 @@
         $("#vbody").innerHTML = `
           <div class="panel">
             <h3 style="margin-bottom:4px">Khuyến mãi tự động theo sản phẩm</h3>
-            <p class="small muted" style="margin-top:0">Chọn một dòng sản phẩm, rồi đặt mức giảm cho cả dòng hoặc từng sản phẩm. Nhãn "Giảm x%" hiện trên cửa hàng và dùng chung được với mã ưu đãi.</p>
+            <p class="small muted" style="margin-top:0">Chọn một dòng sản phẩm, rồi đặt mức giảm cho cả dòng hoặc riêng từng dung tích. Nhãn "Giảm x%" hiện trên cửa hàng và dùng chung được với mã ưu đãi.</p>
             <div class="promo">
               <nav class="promo-lines" aria-label="Dòng sản phẩm">
                 <div class="eyebrow">Dòng sản phẩm</div>
                 ${order.map((c) => { const on = lines[c].filter((p) => p.sale > 0).length; return `<button data-line="${esc(c)}" class="${c === V.line ? "on" : ""}"><span>${esc(c)}${on ? `<small>${on} đang giảm</small>` : ""}</span><span class="small muted">${lines[c].length}</span></button>`; }).join("")}
               </nav>
               <div class="promo-main">${!V.line ? `
-                <div class="empty"><h3>Chọn một dòng sản phẩm</h3><p class="muted small" style="margin:0">Mức giảm được đặt cho từng sản phẩm trong dòng đã chọn.<br>Chọn dòng ở danh sách bên trái để bắt đầu.</p></div>` : `
+                <div class="empty"><h3>Chọn một dòng sản phẩm</h3><p class="muted small" style="margin:0">Mức giảm được đặt riêng cho từng dung tích trong dòng đã chọn.<br>Chọn dòng ở danh sách bên trái để bắt đầu.</p></div>` : `
                 <div class="promo-head"><h3>${esc(V.line)}</h3><span class="small muted">${ps.length} sản phẩm</span></div>
                 <form class="promo-bulk" id="pbulk" novalidate>
-                  <div><b class="small">Đặt cùng một mức giảm cho cả dòng</b><div class="small muted">Từ 0 đến 50%. Vẫn chỉnh riêng được từng sản phẩm bên dưới.</div></div>
-                  <div class="promo-bulk-ctl"><input class="input" name="pct" type="number" min="0" max="50" value="0" aria-label="Mức giảm cho cả dòng (%)"><span>%</span><button class="btn">Áp dụng cho ${ps.length} sản phẩm</button></div>
+                  <div><b class="small">Đặt cùng một mức giảm cho cả dòng</b><div class="small muted">Từ 0 đến 50%, áp dụng cho mọi dung tích. Vẫn chỉnh riêng được từng dung tích bên dưới.</div></div>
+                  <div class="promo-bulk-ctl"><input class="input" name="pct" type="number" min="0" max="50" value="0" aria-label="Mức giảm cho cả dòng (%)"><span>%</span><button class="btn">Áp dụng cho ${ps.reduce((n, p) => n + p.variants.length, 0)} dung tích</button></div>
                 </form>
-                <div class="table-scroll"><table class="table"><thead><tr><th>Sản phẩm</th><th>Giá gốc</th><th style="width:110px">Giảm (%)</th><th>Giá sau giảm</th><th>Trạng thái</th></tr></thead><tbody>${ps.map((p) => { const v = minPrice(p), pic = v.images[0] || p.variants.find((x) => x.images[0])?.images[0]; return `
-                  <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="admin-thumb">${pic ? `<img src="${img(pic)}" alt="">` : ""}</span><div>${esc(p.name)}<div class="small muted">${esc(p.kind)}</div></div></div></td>
-                  <td class="nowrap">${p.variants.length > 1 ? "Từ " : ""}${fmt(v.price)}</td>
-                  <td><input class="input" type="number" min="0" max="50" value="${p.sale || 0}" data-sale="${p.id}" style="height:36px" aria-label="Giảm (%) ${esc(p.name)}"></td>
-                  <td class="nowrap" data-after="${p.id}">${p.sale ? fmt(Store.unitPrice(p, v)) : "—"}</td>
-                  <td>${p.sale ? `<span class="status s-delivered">Đang giảm</span>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`}
+                <div class="table-scroll"><table class="table"><thead><tr><th>Sản phẩm</th><th>Dung tích</th><th>Giá gốc</th><th style="width:110px">Giảm (%)</th><th>Giá sau giảm</th><th>Trạng thái</th></tr></thead><tbody>${ps.map((p) => p.variants.map((v) => { const pic = v.images[0] || p.variants.find((x) => x.images[0])?.images[0], s = Store.saleOf(p, v); return `
+                  <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="admin-thumb">${pic ? `<img src="${img(pic)}" alt="">` : ""}</span><div>${esc(p.name)}<div class="small muted">${esc(p.kind)} · ${esc(v.sku)}</div></div></div></td>
+                  <td class="nowrap">${esc(v.size)}</td>
+                  <td class="nowrap">${fmt(v.price)}</td>
+                  <td><input class="input" type="number" min="0" max="50" value="${s}" data-sale="${esc(v.sku)}" style="height:36px" aria-label="Giảm (%) ${esc(p.name)} ${esc(v.size)}"></td>
+                  <td class="nowrap">${s ? fmt(Store.unitPrice(p, v)) : "—"}</td>
+                  <td>${s ? `<span class="status s-delivered">Đang giảm</span>` : ""}</td></tr>`; }).join("")).join("")}</tbody></table></div>`}
               </div>
             </div>
           </div>`;
         $$("[data-line]").forEach((b) => (b.onclick = () => { V.line = b.dataset.line; VIEWS.vouchers(); }));
-        const setSale = (p, n) => { p.sale = n; Store.saveProduct(p); };
+        // Mỗi ô giảm (%) gắn với một SKU: đổi mức giảm của dung tích này không ảnh hưởng dung tích khác
         $$("[data-sale]").forEach((i) => (i.onchange = () => {
-          const n = Math.round(+i.value);
-          if (!(n >= 0 && n <= 50)) { UI.toast("Mức giảm phải từ 0 đến 50%.", "error"); i.value = Store.product(i.dataset.sale).sale; return; }
-          const p = Store.product(i.dataset.sale); setSale(p, n); UI.toast(`Đã cập nhật giảm giá ${p.name}: ${n}%.`); VIEWS.vouchers();
+          const f = Store.findVariant(i.dataset.sale);
+          const r = Store.setVariantSale(i.dataset.sale, i.value);
+          if (!r.ok) { UI.toast(r.error, "error"); i.value = Store.saleOf(f.p, f.v); return; }
+          const g = Store.findVariant(i.dataset.sale);
+          UI.toast(`Đã cập nhật giảm giá ${g.p.name} ${g.v.size}: ${g.v.sale}%.`); VIEWS.vouchers();
         }));
         if ($("#pbulk")) $("#pbulk").onsubmit = (e) => {
           e.preventDefault();
           const n = Math.round(+e.target.pct.value);
           if (!(n >= 0 && n <= 50)) return UI.toast("Mức giảm phải từ 0 đến 50%.", "error");
-          ps.forEach((p) => setSale(p, n));
-          UI.toast(`Đã đặt giảm ${n}% cho ${ps.length} sản phẩm dòng ${V.line}.`); VIEWS.vouchers();
+          const skus = ps.flatMap((p) => p.variants.map((v) => v.sku));
+          Store.setVariantSale(skus, n);
+          UI.toast(`Đã đặt giảm ${n}% cho ${skus.length} dung tích dòng ${V.line}.`); VIEWS.vouchers();
         };
       },
     };
@@ -369,42 +373,43 @@
 
     function editProduct(p, after) {
       const isNew = !p;
-      p = p ? JSON.parse(JSON.stringify(p)) : { id: "", name: "", kind: "Dầu gội", line: "", collection: "", needs: [], hair: [], short: "", description: "", sale: 0, active: false, variants: [{ sku: "", size: "250 ml", price: 0, stock: 0, images: [] }] };
+      p = p ? JSON.parse(JSON.stringify(p)) : { id: "", name: "", kind: "Dầu gội", line: "", collection: "", needs: [], hair: [], short: "", description: "", sale: 0, active: false, variants: [{ sku: "", size: "250 ml", price: 0, sale: 0, stock: 0, images: [] }] };
       const allNeeds = [...new Set(Store.db.products.flatMap((x) => x.needs))].sort();
       const allHair = [...new Set(Store.db.products.flatMap((x) => x.hair))].sort();
       const m = UI.modal(`
         <h3>${isNew ? "Thêm sản phẩm" : "Sửa sản phẩm"}</h3>
         <form id="ef" novalidate>
           <div class="row-2"><div class="field"><label>Tên sản phẩm</label><input class="input" name="name" value="${esc(p.name)}"></div><div class="field"><label>Loại</label><input class="input" name="kind" value="${esc(p.kind)}" list="kinds"><datalist id="kinds"><option>Dầu gội</option><option>Dầu xả</option><option>Bánh gội</option><option>Mặt nạ</option><option>Dầu dưỡng</option><option>Combo</option></datalist></div></div>
-          <div class="row-2"><div class="field"><label>Dòng sản phẩm</label><input class="input" name="collection" value="${esc(p.collection)}" list="cols"><datalist id="cols">${[...new Set(Store.db.products.map((x) => x.collection))].map((c) => `<option>${esc(c)}</option>`).join("")}</datalist></div><div class="field"><label>Giảm giá tự động (%)</label><input class="input" name="sale" type="number" min="0" max="50" value="${p.sale}"></div></div>
+          <div class="row-2"><div class="field"><label>Dòng sản phẩm</label><input class="input" name="collection" value="${esc(p.collection)}" list="cols"><datalist id="cols">${[...new Set(Store.db.products.map((x) => x.collection))].map((c) => `<option>${esc(c)}</option>`).join("")}</datalist></div></div>
           <div class="field"><label>Mô tả ngắn</label><input class="input" name="short" value="${esc(p.short)}"></div>
           <div class="field"><label>Mô tả chi tiết</label><textarea class="input" name="description" rows="3">${esc(p.description)}</textarea></div>
           <div class="row-2"><fieldset style="border:0;padding:0"><div class="eyebrow">Nhu cầu</div>${allNeeds.map((n) => `<label class="check"><input type="checkbox" name="needs" value="${esc(n)}" ${p.needs.includes(n) ? "checked" : ""}> ${esc(n)}</label>`).join("")}</fieldset>
           <fieldset style="border:0;padding:0"><div class="eyebrow">Loại tóc</div>${allHair.map((n) => `<label class="check"><input type="checkbox" name="hair" value="${esc(n)}" ${p.hair.includes(n) ? "checked" : ""}> ${esc(n)}</label>`).join("")}</fieldset></div>
           <div class="eyebrow" style="margin-top:12px">Dung tích & giá</div>
-          <table class="table" id="vt"><thead><tr><th>SKU</th><th>Dung tích</th><th>Giá gốc (₫)</th><th>Ảnh (đường dẫn)</th><th></th></tr></thead><tbody></tbody></table>
+          <table class="table" id="vt"><thead><tr><th>SKU</th><th>Dung tích</th><th>Giá gốc (₫)</th><th>Giảm (%)</th><th>Ảnh (đường dẫn)</th><th></th></tr></thead><tbody></tbody></table>
           <button type="button" class="link small" id="addv">+ Thêm dung tích</button>
           <p class="small muted">Tồn kho được điều chỉnh ở mục Tồn kho. Dung tích mới bắt đầu với tồn 0.${isNew ? " Sản phẩm mới được tạo ở trạng thái Ngừng bán; nhập kho và thêm ảnh xong hãy bấm Mở bán." : ""}</p>
           <div class="modal-actions"><button class="btn">Lưu sản phẩm</button><button type="button" class="btn btn-outline" data-close>Hủy</button></div>
         </form>`, { wide: true });
       const tbody = $("#vt tbody", m.el);
       const drawV = () => {
-        tbody.innerHTML = p.variants.map((v, i) => `<tr><td><input class="input" data-i="${i}" data-f="sku" value="${esc(v.sku)}" ${v.sku && !isNew && Store.findVariant(v.sku) ? "readonly" : ""} style="height:36px;width:110px"></td><td><input class="input" data-i="${i}" data-f="size" value="${esc(v.size)}" style="height:36px;width:100px"></td><td><input class="input" data-i="${i}" data-f="price" type="number" min="1000" step="1000" value="${v.price}" style="height:36px;width:130px"></td><td><input class="input" data-i="${i}" data-f="images" value="${esc(v.images.join(", "))}" placeholder="assets/img/products/..." style="height:36px"></td><td>${p.variants.length > 1 && !(Store.findVariant(v.sku)) ? `<button type="button" class="link small" data-rm="${i}">Xóa</button>` : ""}</td></tr>`).join("");
-        $$("[data-f]", tbody).forEach((inp) => (inp.oninput = () => { const v = p.variants[+inp.dataset.i]; const f = inp.dataset.f; v[f] = f === "price" ? +inp.value : f === "images" ? inp.value.split(",").map((s) => s.trim()).filter(Boolean) : inp.value.trim(); }));
+        tbody.innerHTML = p.variants.map((v, i) => `<tr><td><input class="input" data-i="${i}" data-f="sku" value="${esc(v.sku)}" ${v.sku && !isNew && Store.findVariant(v.sku) ? "readonly" : ""} style="height:36px;width:110px"></td><td><input class="input" data-i="${i}" data-f="size" value="${esc(v.size)}" style="height:36px;width:100px"></td><td><input class="input" data-i="${i}" data-f="price" type="number" min="1000" step="1000" value="${v.price}" style="height:36px;width:130px"></td><td><input class="input" data-i="${i}" data-f="sale" type="number" min="0" max="50" value="${v.sale || 0}" style="height:36px;width:80px" aria-label="Giảm (%) ${esc(v.size)}"></td><td><input class="input" data-i="${i}" data-f="images" value="${esc(v.images.join(", "))}" placeholder="assets/img/products/..." style="height:36px"></td><td>${p.variants.length > 1 && !(Store.findVariant(v.sku)) ? `<button type="button" class="link small" data-rm="${i}">Xóa</button>` : ""}</td></tr>`).join("");
+        $$("[data-f]", tbody).forEach((inp) => (inp.oninput = () => { const v = p.variants[+inp.dataset.i]; const f = inp.dataset.f; v[f] = f === "price" || f === "sale" ? +inp.value : f === "images" ? inp.value.split(",").map((s) => s.trim()).filter(Boolean) : inp.value.trim(); }));
         $$("[data-rm]", tbody).forEach((b) => (b.onclick = () => { p.variants.splice(+b.dataset.rm, 1); drawV(); }));
       };
       drawV();
-      $("#addv", m.el).onclick = () => { p.variants.push({ sku: "", size: "", price: 0, stock: 0, images: [] }); drawV(); };
+      $("#addv", m.el).onclick = () => { p.variants.push({ sku: "", size: "", price: 0, sale: 0, stock: 0, images: [] }); drawV(); };
       $("#ef", m.el).onsubmit = (e) => {
         e.preventDefault();
         const f = e.target;
-        const ok = UI.validate(f, { name: [UI.V.required("tên sản phẩm")], kind: [UI.V.required("loại")], collection: [UI.V.required("dòng sản phẩm")], short: [UI.V.required("mô tả ngắn")], sale: [(v) => (+v >= 0 && +v <= 50 ? "" : "Từ 0 đến 50%.")] });
+        const ok = UI.validate(f, { name: [UI.V.required("tên sản phẩm")], kind: [UI.V.required("loại")], collection: [UI.V.required("dòng sản phẩm")], short: [UI.V.required("mô tả ngắn")] });
         if (!ok) return;
         const skus = p.variants.map((v) => v.sku);
         const bad = p.variants.find((v) => !v.sku || !v.size || !(v.price >= 1000));
+        if (p.variants.some((v) => !(Number.isInteger(+v.sale) && +v.sale >= 0 && +v.sale <= 50))) return UI.toast("Mức giảm của mỗi dung tích phải từ 0 đến 50%.", "error");
         if (bad) return UI.toast("Mỗi dung tích cần có SKU, tên dung tích và giá từ 1.000 ₫.", "error");
         if (new Set(skus).size !== skus.length || p.variants.some((v) => { const f2 = Store.findVariant(v.sku); return f2 && f2.p.id !== p.id; })) return UI.toast("SKU bị trùng với sản phẩm khác.", "error");
-        Object.assign(p, { name: f.name.value.trim(), kind: f.kind.value.trim(), collection: f.collection.value.trim(), short: f.short.value.trim(), description: f.description.value.trim() || f.short.value.trim(), sale: Math.round(+f.sale.value), needs: $$("[name=needs]:checked", f).map((x) => x.value), hair: $$("[name=hair]:checked", f).map((x) => x.value) });
+        Object.assign(p, { name: f.name.value.trim(), kind: f.kind.value.trim(), collection: f.collection.value.trim(), short: f.short.value.trim(), description: f.description.value.trim() || f.short.value.trim(), needs: $$("[name=needs]:checked", f).map((x) => x.value), hair: $$("[name=hair]:checked", f).map((x) => x.value) });
         if (isNew) { p.id = (p.kind + "-" + p.name).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36); p.line = p.name.split(" ")[0].toUpperCase(); p.createdAt = Store.today(); }
         Store.saveProduct(p);
         m.close(); UI.toast(isNew ? "Đã thêm sản phẩm." : "Đã lưu sản phẩm."); after();

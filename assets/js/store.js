@@ -42,7 +42,7 @@
     // Khuyến mãi tự động theo sản phẩm (% giảm), quản trị có thể sửa ở trang Voucher & khuyến mãi
     const promos = { "dau-goi-nounou": 15, "dau-goi-love-smoothing": 10, "banh-goi-momo": 10 };
     // Sản phẩm thêm sau (dầu xả, dưỡng tóc) đã có sẵn ngày lên kệ trong data.js
-    products.forEach((p) => { p.sale = promos[p.id] || 0; p.active = true; p.createdAt = p.createdAt || (p.kind === "Dầu gội" ? "2026-09-01" : "2026-10-15"); });
+    products.forEach((p) => { p.variants.forEach((v) => (v.sale = promos[p.id] || 0)); syncSale(p); p.active = true; p.createdAt = p.createdAt || (p.kind === "Dầu gội" ? "2026-09-01" : "2026-10-15"); });
 
     const db = {
       version: SEED_VERSION,
@@ -148,8 +148,9 @@
     const products = seed.map((p) => {
       const o = old.get(p.id);
       old.delete(p.id);
-      p.sale = o ? o.sale : 0; p.active = o ? o.active : true; p.createdAt = o ? o.createdAt : p.createdAt || localDay(new Date());
-      p.variants.forEach((v) => { const ov = o && o.variants.find((x) => x.sku === v.sku); if (ov) { v.stock = ov.stock; v.price = ov.price; } });
+      p.active = o ? o.active : true; p.createdAt = o ? o.createdAt : p.createdAt || localDay(new Date());
+      p.variants.forEach((v) => { const ov = o && o.variants.find((x) => x.sku === v.sku); v.sale = 0; if (ov) { v.stock = ov.stock; v.price = ov.price; v.sale = ov.sale || 0; } });
+      syncSale(p);
       return p;
     });
     db.products = products.concat([...old.values()]); // giữ sản phẩm do quản trị thêm
@@ -162,6 +163,8 @@
     const w = db.vouchers.find((v) => v.code === "WELCOME15");
     if (w && w.firstOrderOnly === undefined) { w.firstOrderOnly = true; w.desc = "Giảm 15% (tối đa 150.000 đ) cho đơn đầu tiên từ 500.000 đ"; save(db); }
     if (!db.resets) db.resets = [];
+    // Dữ liệu cũ chỉ có % giảm theo sản phẩm: chép mức đó xuống từng dung tích
+    db.products.forEach((p) => { if (p.sale > 0 && p.variants.every((v) => !v.sale)) p.variants.forEach((v) => (v.sale = p.sale)); syncSale(p); });
     if (serverMode && db.version !== SEED_VERSION) return upgradeProducts(db);
     return db;
   }
@@ -199,7 +202,25 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 
   // ---------- Sản phẩm ----------
-  function unitPrice(p, v) { return Math.round(v.price * (100 - (p.sale || 0)) / 100 / 500) * 500; }
+  // % giảm tính riêng cho từng dung tích (v.sale). p.sale chỉ là mức giảm cao nhất của sản phẩm, dùng cho lọc "Đang giảm giá" và nhãn.
+  function saleOf(p, v) { return v && v.sale != null ? v.sale : (p && p.sale) || 0; }
+  function syncSale(p) {
+    p.variants.forEach((v) => { const n = Math.round(Number(v.sale)); v.sale = n >= 0 && n <= 50 ? n : 0; });
+    p.sale = Math.max(0, ...p.variants.map((v) => v.sale));
+    return p;
+  }
+  function unitPrice(p, v) { return Math.round(v.price * (100 - saleOf(p, v)) / 100 / 500) * 500; }
+  // Đặt % giảm cho một hoặc nhiều dung tích (theo SKU)
+  function setVariantSale(skus, pct) {
+    const n = Math.round(+pct);
+    if (!(n >= 0 && n <= 50)) return { ok: false, error: "Mức giảm phải từ 0 đến 50%." };
+    const touched = new Set();
+    [].concat(skus).forEach((sku) => { const f = findVariant(sku); if (f) { f.v.sale = n; touched.add(f.p); } });
+    if (!touched.size) return { ok: false, error: "Không tìm thấy dung tích." };
+    touched.forEach(syncSale);
+    commit();
+    return { ok: true, count: [].concat(skus).length };
+  }
   function products(opts = {}) { return DB.products.filter((p) => opts.all || p.active); }
   function product(id) { return DB.products.find((p) => p.id === id); }
   function findVariant(sku) {
@@ -350,7 +371,7 @@
 
   function makeLine(p, v, qty) {
     const price = unitPrice(p, v);
-    return { sku: v.sku, productId: p.id, name: p.name, collection: p.collection, size: v.size, image: v.images[0] || p.variants.find((x) => x.images[0])?.images[0] || "", listPrice: v.price, price, sale: p.sale || 0, qty, total: price * qty };
+    return { sku: v.sku, productId: p.id, name: p.name, collection: p.collection, size: v.size, image: v.images[0] || p.variants.find((x) => x.images[0])?.images[0] || "", listPrice: v.price, price, sale: saleOf(p, v), qty, total: price * qty };
   }
 
   // ---------- Voucher & tổng tiền ----------
@@ -462,6 +483,7 @@
     const i = DB.products.findIndex((x) => x.id === p.id);
     // Tồn kho chỉ đổi qua nhập kho / đặt hàng: giữ số tồn mới nhất, không lấy số cũ trong form đang mở
     if (i >= 0) p.variants.forEach((v) => { const cur = DB.products[i].variants.find((x) => x.sku === v.sku); if (cur) v.stock = cur.stock; });
+    syncSale(p);
     if (i >= 0) DB.products[i] = p; else DB.products.push(p);
     commit();
   }
@@ -522,7 +544,7 @@
   function reset() { localStorage.removeItem(DB_KEY); sessionStorage.removeItem(GUEST_CART_KEY); DB = serverMode ? seedDb() : load(); commit(); }
 
   window.Store = {
-    RULES, STATUS, NEXT_STATUS, fmt, statusLabel, unitPrice, priceRange, inStock, cleanDesc,
+    RULES, STATUS, NEXT_STATUS, fmt, statusLabel, unitPrice, saleOf, priceRange, inStock, cleanDesc,
     get db() { return DB; },
     products, product, findVariant,
     today, currentUser, signIn, logout, resetInfo, hasOrdered,
@@ -531,6 +553,6 @@
     currentAdmin, adminLogin, adminLogout,
     cart, cartCount, addToCart: fresh(addToCart), setQty: fresh(setQty), removeFromCart: fresh(removeFromCart),
     checkVoucher, calcTotals, placeOrder: fresh(placeOrder), order, lookupOrder, myOrders, updateOrderStatus: fresh(updateOrderStatus),
-    saveProduct: fresh(saveProduct), adjustStock: fresh(adjustStock), saveVoucher: fresh(saveVoucher), deleteVoucher: fresh(deleteVoucher), report, reset,
+    saveProduct: fresh(saveProduct), setVariantSale: fresh(setVariantSale), adjustStock: fresh(adjustStock), saveVoucher: fresh(saveVoucher), deleteVoucher: fresh(deleteVoucher), report, reset,
   };
 })();

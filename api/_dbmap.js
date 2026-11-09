@@ -5,7 +5,7 @@
 // Kiểu cột: s chuỗi, n số, b đúng/sai, l danh sách (CSV ngăn bằng |, Postgres dùng mảng text[]), o chuỗi có thể rỗng (null)
 const SCHEMA = {
   products: { id: "s", name: "s", kind: "s", line: "s", collection: "s", needs: "l", hair: "l", short: "s", description: "s", url: "s", benefits: "l", extra: "s", ingredients: "o", sale: "n", active: "b", createdAt: "s" },
-  product_variants: { productId: "s", sku: "s", size: "s", price: "n", stock: "n", images: "l" },
+  product_variants: { productId: "s", sku: "s", size: "s", price: "n", sale: "n", stock: "n", images: "l" }, // sale: % giảm riêng của dung tích; products.sale = mức giảm cao nhất của các dung tích
   users: { id: "s", role: "s", name: "s", email: "s", phone: "s", birthday: "s", gender: "s", promo: "b", pass: "s" },
   addresses: { userId: "s", id: "s", name: "s", phone: "s", city: "s", ward: "s", line: "s", isDefault: "b" },
   cart_items: { userId: "s", sku: "s", qty: "n" },

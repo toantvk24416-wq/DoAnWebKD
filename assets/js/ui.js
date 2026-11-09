@@ -95,8 +95,8 @@
         <div class="eyebrow">Đang giảm giá</div>
         <h4>${onSale.length} sản phẩm, giảm đến ${maxSale}%</h4>
         ${onSale.slice(0, 3).map((p) => {
-          const v = [...p.variants].sort((a, b) => a.price - b.price)[0], img = (p.variants.find((x) => x.images[0]) || v).images[0];
-          return `<a class="mega-sale-item" href="product.html?id=${encodeURIComponent(p.id)}"><span class="thumb">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ""}</span><span><span class="name">${esc(p.name)}</span><span class="small"><b>${fmt(Store.unitPrice(p, v))}</b> <s>${fmt(v.price)}</s> <em>−${p.sale}%</em></span></span></a>`;
+          const v = p.variants.filter((x) => Store.saleOf(p, x) > 0).sort((a, b) => a.price - b.price)[0], img = (p.variants.find((x) => x.images[0]) || v).images[0];
+          return `<a class="mega-sale-item" href="product.html?id=${encodeURIComponent(p.id)}"><span class="thumb">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ""}</span><span><span class="name">${esc(p.name)}</span><span class="small"><b>${fmt(Store.unitPrice(p, v))}</b> <s>${fmt(v.price)}</s> <em>−${Store.saleOf(p, v)}%</em></span></span></a>`;
         }).join("")}
         <a class="link small" href="products.html?sale=1">Xem ${onSale.length} sản phẩm đang giảm</a>
       </div>` : "";
@@ -181,11 +181,14 @@
     const img = shown?.images[0];
     const hover = img ? hoverImg(p, shown, img) : "";
     const first = p.variants[0];
+    // Mỗi dung tích có % giảm riêng: giá gạch ngang và nhãn giảm lấy theo đúng dung tích đang hiện giá
+    const cheap = [...p.variants].sort((a, b) => Store.unitPrice(p, a) - Store.unitPrice(p, b))[0];
     const priceHtml = pick
-      ? `${fmt(Store.unitPrice(p, pick))}${p.sale ? `<s>${fmt(pick.price)}</s>` : ""} <span class="small muted">· ${esc(pick.size)}</span>`
-      : p.sale
-      ? `${r.multi ? "Từ " : ""}${fmt(r.min)}<s>${fmt(Math.min(...p.variants.map((v) => v.price)))}</s>`
-      : `${r.multi ? "Từ " : ""}${fmt(r.min)}`;
+      ? `${fmt(Store.unitPrice(p, pick))}${Store.saleOf(p, pick) ? `<s>${fmt(pick.price)}</s>` : ""} <span class="small muted">· ${esc(pick.size)}</span>`
+      : `${r.multi ? "Từ " : ""}${fmt(r.min)}${Store.saleOf(p, cheap) ? `<s>${fmt(cheap.price)}</s>` : ""}`;
+    const sales = p.variants.map((v) => Store.saleOf(p, v)), topSale = Math.max(0, ...sales);
+    const saleBadge = pick ? (Store.saleOf(p, pick) ? `Giảm ${Store.saleOf(p, pick)}%` : "")
+      : topSale ? (sales.every((x) => x === topSale) ? `Giảm ${topSale}%` : `Giảm đến ${topSale}%`) : "";
     const href = `product.html?id=${encodeURIComponent(p.id)}${pick ? `&sku=${encodeURIComponent(pick.sku)}` : ""}`;
     const buyV = pick && pick.stock > 0 ? pick : p.variants.filter((v) => v.stock > 0).sort((a, b) => a.price - b.price)[0];
     const buyHtml = !buy ? "" : buyV
@@ -197,7 +200,7 @@
         <div class="img">
           ${img ? `<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">` : ""}
           ${hover ? `<img class="hover-img" src="${esc(hover)}" alt="" loading="lazy">` : ""}
-          <div class="badges">${p.sale ? `<span class="badge sale">Giảm ${p.sale}%</span>` : ""}${tagsOf(p).fresh ? `<span class="badge new">New-in</span>` : ""}${tagsOf(p).best ? `<span class="badge best">Best-seller</span>` : ""}</div>
+          <div class="badges">${saleBadge ? `<span class="badge sale">${saleBadge}</span>` : ""}${tagsOf(p).fresh ? `<span class="badge new">New-in</span>` : ""}${tagsOf(p).best ? `<span class="badge best">Best-seller</span>` : ""}</div>
           ${!Store.inStock(p) ? `<span class="badge out">Hết hàng</span>` : ""}
         </div>
         <div class="body">
