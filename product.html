@@ -59,8 +59,8 @@
               <h1 style="margin:6px 0">${UI.esc(p.name)}</h1>
               <div class="muted">${UI.esc(p.short)}</div>
               <div class="price-big">${fmt(price)} ${p.sale ? `<s class="muted" style="font-size:18px">${fmt(variant.price)}</s> <span class="badge sale">Giảm ${p.sale}%</span>` : ""}</div>
-              <div class="eyebrow">Dung tích</div>
-              <div class="sizes">${p.variants.map((v) => `<button class="size-btn ${v === variant ? "on" : ""} ${v.stock <= 0 ? "out" : ""}" data-sku="${v.sku}" title="${v.stock <= 0 ? "Tạm hết hàng" : ""}">${UI.esc(v.size)}</button>`).join("")}</div>
+              ${p.variants.length > 1 ? `<div class="eyebrow">Dung tích</div>
+              <div class="sizes">${p.variants.map((v) => `<button class="size-btn ${v === variant ? "on" : ""} ${v.stock <= 0 ? "out" : ""}" data-sku="${v.sku}" title="${v.stock <= 0 ? "Tạm hết hàng" : ""}">${UI.esc(v.size)}</button>`).join("")}</div>` : ""}
               <div class="stock ${out ? "out" : ""}">${out ? "Tạm hết hàng" : variant.stock <= 5 ? `Chỉ còn ${variant.stock} sản phẩm` : "Còn hàng"}</div>
               <div class="buy-row">
                 <div class="qty"><button id="minus" aria-label="Giảm" ${out ? "disabled" : ""}>−</button><input id="qty" type="number" min="1" max="${maxQty()}" value="${out ? 0 : qty}" ${out ? "disabled" : ""} aria-label="Số lượng"><button id="plus" aria-label="Tăng" ${out ? "disabled" : ""}>+</button></div>

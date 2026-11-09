@@ -48,8 +48,8 @@ export default async function (t, check) {
   check("Ô tìm trên header: khoảng trắng không chuyển trang, báo lỗi", (await t.js(`return document.querySelector('#search-bar .err').innerText`)).includes("2 đến 100"));
   // --- FB UC04
   await t.go(B + "login.html?mode=register");
-  const promo = await t.js(`const c=document.querySelector('[name=promo]'); return c && !c.checked`);
-  check("Có ô Đồng ý nhận tin khuyến mãi, mặc định không chọn", promo === true);
+  const promo = await t.js(`return !document.querySelector('[name=promo]')`);
+  check("Không còn ô nhận tin khuyến mãi (góp ý lần 02)", promo === true);
   const clearErr = await t.js(`const f=document.querySelector('#f'); f.requestSubmit(); await new Promise(r=>setTimeout(r,50)); const before=f.name.closest('.field').classList.contains('error'); f.name.value='A'; f.name.dispatchEvent(new Event('input',{bubbles:true})); return before+'|'+f.name.closest('.field').classList.contains('error')`);
   check("Gõ lại thì dòng báo lỗi mất ngay", clearErr === "true|false", clearErr);
   const dup = await t.js(`const f=document.querySelector('#f'); f.name.value='A B'; f.email.value='an.nguyen@email.com'; f.phone.value='0987654321'; f.pass.value='Matkhau123'; f.pass2.value='Matkhau123'; f.agree.checked=true; f.requestSubmit(); await new Promise(r=>setTimeout(r,100)); return {t:f.email.closest('.field').innerText, l:!!document.querySelector('#dup-login'), q:!!document.querySelector('#dup-forgot')}`);

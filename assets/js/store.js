@@ -107,7 +107,7 @@
     return path.slice(0, end + 1).map((s, i) => ({ status: s, at: new Date(date.getTime() + i * 26 * 3600000).toISOString() }));
   }
 
-  // Chạy bằng server.js: dữ liệu nằm trong các file CSV (thư mục data). Mở bằng Live Server: dùng localStorage như cũ.
+  // Chạy bằng server.js: dữ liệu nằm trong các file CSV (thư mục data). Trên Vercel: api/db.js lưu vào Postgres. Mở bằng Live Server: dùng localStorage như cũ.
   let serverMode = false;
   function api(method, body) {
     try {
@@ -163,7 +163,7 @@
   function save(db) {
     if (!serverMode) { localStorage.setItem(DB_KEY, JSON.stringify(db)); return; }
     const r = api("POST", JSON.stringify(db));
-    if (!r || r.status !== 200) warn("Không ghi được dữ liệu xuống CSV. Hãy kiểm tra server.js còn đang chạy không.");
+    if (!r || r.status !== 200) warn(location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "Không ghi được dữ liệu xuống CSV. Hãy kiểm tra server.js còn đang chạy không." : "Không lưu được dữ liệu lên database. Hãy thử lại sau.");
     else if (r.json.pending && r.json.pending.length) warn(`Chưa ghi được ${r.json.pending.join(", ")} vì file đang mở. Hãy đóng file, dữ liệu sẽ tự được ghi.`);
   }
   let DB = load();

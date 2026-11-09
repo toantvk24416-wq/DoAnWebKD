@@ -7,3 +7,6 @@ __pycache__/
 *.tmp
 # Ảnh chụp của bộ test tự động
 tests/out_*/
+
+.vercel
+.env*

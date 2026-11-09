@@ -149,8 +149,7 @@
           <div class="field"><label for="phone">Số điện thoại</label><input class="input" id="phone" name="phone" autocomplete="tel"></div>
           <div class="field"><label for="pass">Mật khẩu</label><input class="input" id="pass" name="pass" type="password" autocomplete="new-password"></div>
           <div class="field"><label for="pass2">Nhập lại mật khẩu</label><input class="input" id="pass2" name="pass2" type="password" autocomplete="new-password"></div>
-          <div class="field" style="margin-bottom:8px"><label class="check"><input type="checkbox" name="agree"> Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật</label></div>
-          <div class="field" style="margin-bottom:16px"><label class="check"><input type="checkbox" name="promo"> Đồng ý nhận tin khuyến mãi qua email (không bắt buộc)</label></div>
+          <div class="field" style="margin-bottom:16px"><label class="check"><input type="checkbox" name="agree"> Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật</label></div>
           <button class="btn btn-block">Tạo tài khoản</button>
         </form>
         <p style="text-align:center" class="small">Đã có tài khoản? <button class="link" id="to-login">Đăng nhập</button></p>`;
@@ -163,7 +162,7 @@
           agree: [() => (f.agree.checked ? "" : "Vui lòng đồng ý với điều khoản sử dụng.")],
         });
         if (!ok) return;
-        const r = Store.register({ name: f.name.value, email: f.email.value, phone: f.phone.value, pass: f.pass.value, promo: f.promo.checked });
+        const r = Store.register({ name: f.name.value, email: f.email.value, phone: f.phone.value, pass: f.pass.value });
         if (!r.ok) {
           // BR-TK07 / UC04 EF2: email đã tồn tại -> gợi ý Đăng nhập hoặc Quên mật khẩu
           setErr(f[r.field], `${UI.esc(r.error)} Bạn có thể <button type="button" class="link small" id="dup-login">Đăng nhập</button> hoặc <button type="button" class="link small" id="dup-forgot">Quên mật khẩu</button>.`);

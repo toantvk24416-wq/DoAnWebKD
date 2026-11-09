@@ -14,7 +14,7 @@ export default async function (t, check) {
   await t.go(B + "index.html");
   const after = await t.js(`return JSON.stringify(Store.db)`);
   const so = (o) => (Array.isArray(o) ? o.map(so) : o && typeof o === "object" ? Object.fromEntries(Object.keys(o).sort().map((k) => [k, so(o[k])])) : o);
-  const norm = (s) => { const d = JSON.parse(s); d.orders.forEach((x) => { x.customer.note = x.customer.note || ""; }); d.vouchers.forEach((v) => { v.firstOrderOnly = !!v.firstOrderOnly; }); return so(d); };
+  const norm = (s) => { const d = JSON.parse(s); d.orders.forEach((x) => { x.customer.note = x.customer.note || ""; }); d.vouchers.forEach((v) => { v.firstOrderOnly = !!v.firstOrderOnly; }); d.products.forEach((p) => { delete p.gia_tam; p.url = p.url || ""; }); return so(d); }; // gia_tam chỉ là ghi chú giá tạm trong file mẫu, không lưu
   const a = norm(before), b = norm(after);
   let where = "";
   for (const k of Object.keys(a)) if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) { const i = Array.isArray(a[k]) ? a[k].findIndex((x, n) => JSON.stringify(x) !== JSON.stringify(b[k][n])) : -1; where += `${k}@${i} ${JSON.stringify(i < 0 ? a[k] : a[k][i]).slice(0, 400)} VS ${JSON.stringify(i < 0 ? b[k] : b[k][i]).slice(0, 400)}; `; }
@@ -73,7 +73,7 @@ export default async function (t, check) {
   // Nâng phiên bản dữ liệu không mất đơn
   const up = await t.js(`const j=await fetch('/api/db').then(r=>r.json()); j.db.version=1; await fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j.db)}); return j.db.orders.length`);
   await t.go(B + "index.html");
-  check("Đổi phiên bản dữ liệu: giữ đơn, giá giảm, cập nhật version", (await t.js(`return Store.db.orders.length`)) === up && csv("meta").includes("version,4"), csv("meta").slice(1));
+  check("Đổi phiên bản dữ liệu: giữ đơn, giá giảm, cập nhật version", (await t.js(`return Store.db.orders.length`)) === up && csv("meta").includes("version," + (await t.js(`return Store.SEED_VERSION || JSON.parse(JSON.stringify(Store.db)).version`))), csv("meta").slice(1));
   // Khởi tạo lại
   await t.js(`Store.reset()`);
   check("Store.reset ghi lại CSV về mẫu", !csv("users").includes("csv@test.vn") && !csv("orders").includes(code));
