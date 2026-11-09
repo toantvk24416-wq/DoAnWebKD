@@ -21,14 +21,15 @@
       </aside>
 
       <article class="about-body" id="gioi-thieu">
-        <h1>Giới thiệu về Davines</h1>
-        <p class="lead">Davines là thương hiệu chăm sóc tóc chuyên nghiệp đến từ Parma, Ý, phát triển cùng các salon từ năm 1983.</p>
-        <h2>Câu chuyện thương hiệu</h2>
-        <p>Davines xuất phát từ nhu cầu của người làm nghề tóc: sản phẩm phải hiệu quả trên tóc thật và dễ dùng hằng ngày. Từ đó thương hiệu mở rộng thành nhiều dòng chăm sóc tóc và da đầu, từ làm sạch, dưỡng ẩm đến phục hồi và tạo kiểu.</p>
-        <h2>Chăm sóc tóc gắn với bền vững</h2>
-        <p>Davines là Certified B Corp từ năm 2016 và theo đuổi hướng phát triển bền vững trong cách chọn thành phần và bao bì.</p>
-        <h2>Chọn sản phẩm phù hợp với tóc của bạn</h2>
-        <p>Website sắp xếp sản phẩm theo vấn đề tóc và dòng sản phẩm để bạn so sánh dung tích, giá và cách dùng trước khi mua.</p>
+        <h1>Davines: chăm sóc tóc từ salon, dùng được ở nhà</h1>
+        <p class="lead">Davines đến từ Parma, Ý. Từ năm 1983, thương hiệu phát triển sản phẩm cùng các salon chuyên nghiệp, nơi mỗi ngày người làm nghề phải đối mặt với mái tóc thật của khách chứ không phải tóc mẫu.</p>
+        <h2>Bắt đầu từ chiếc ghế salon</h2>
+        <p>Davines ra đời từ một yêu cầu rất thực tế của người làm tóc: sản phẩm phải cho kết quả rõ trên tóc thật, và đủ dễ dùng để khách tự làm lại ở nhà mỗi sáng. Từ yêu cầu ấy, thương hiệu mở rộng dần thành nhiều dòng chăm sóc tóc và da đầu. Có sản phẩm làm sạch nhẹ nhàng, có sản phẩm dưỡng ẩm cho tóc khô xơ, có dòng phục hồi cho tóc hư tổn, và có các sản phẩm tạo kiểu để giữ nếp suốt ngày dài.</p>
+        <h2>Chăm sóc tóc và nghĩ đến lâu dài</h2>
+        <p>Davines là Certified B Corp từ năm 2016, chứng nhận dành cho doanh nghiệp được đánh giá về tác động đến con người và môi trường. Thương hiệu theo đuổi hướng phát triển bền vững ngay từ khâu chọn thành phần và thiết kế bao bì. Khi bạn chọn một chai dầu gội hay một hũ mặt nạ ủ của Davines, bạn đang chọn một sản phẩm được cân nhắc kỹ cả về hiệu quả lẫn cách nó được làm ra.</p>
+        <h2>Tìm đúng sản phẩm cho mái tóc của bạn</h2>
+        <p>Mỗi mái tóc có một vấn đề riêng, nên chúng tôi sắp xếp sản phẩm theo hai cách: theo vấn đề tóc bạn đang gặp và theo từng dòng sản phẩm. Bạn có thể đặt các sản phẩm cạnh nhau, xem dung tích, giá và cách dùng, rồi chọn món hợp với tóc và thói quen của mình trước khi quyết định mua.</p>
+        <p>Chưa biết bắt đầu từ đâu? Hãy chọn vấn đề tóc bạn quan tâm nhất, chúng tôi sẽ gợi ý những sản phẩm phù hợp.</p>
         <a class="btn" href="products.html">Xem sản phẩm</a>
         <p class="small muted about-note">Nội dung giới thiệu phục vụ đồ án học tập, không đại diện cho Davines S.p.A.</p>
       </article>
@@ -49,7 +50,6 @@
         </dl>
         <h2>Sau khi đặt hàng</h2>
         <dl class="policy">
-          <dt>Hóa đơn</dt><dd>Gửi qua email bạn nhập khi đặt hàng, kèm mã đơn dạng DV-YYMMDD-NNNN.</dd>
           <dt>Theo dõi đơn</dt><dd>Tra cứu bằng mã đơn và email, hoặc xem trong Tài khoản › Lịch sử đơn hàng.</dd>
           <dt>Hủy đơn</dt><dd>Đơn đã đặt thành công không thể hủy. Hãy kiểm tra giỏ hàng và thông tin nhận hàng trước khi nhấn Đặt hàng.</dd>
         </dl>
@@ -65,7 +65,7 @@
     const R = Store.RULES, fmt = Store.fmt;
     UI.$("#p-ship").textContent = `${fmt(R.shippingFee)} cho mọi địa chỉ nhận hàng.`;
     UI.$("#p-free").textContent = `Áp dụng cho đơn có tạm tính sau giảm giá từ ${fmt(R.freeShipFrom)}.`;
-    UI.$("#p-cod").textContent = `Áp dụng cho đơn có tổng thanh toán đến ${fmt(R.codLimit)}. Đơn lớn hơn cần thanh toán trực tuyến.`;
+    UI.$("#p-cod").textContent = `Chỉ áp dụng cho đơn có tổng thanh toán từ ${fmt(R.codLimit)} trở xuống. Đơn trên ${fmt(R.codLimit)} cần thanh toán trực tuyến.`;
     UI.$("#p-hold").textContent = `Hàng được giữ tạm ${R.vnpayHoldMinutes} phút trong lúc bạn thanh toán. Nếu thanh toán thất bại, bị hủy hoặc quá hạn, đơn không được tạo và giỏ hàng giữ nguyên. Bạn có thể thanh toán lại hoặc chọn COD nếu đủ điều kiện.`;
     // 2 mục dùng chung một trang, chọn theo #gioi-thieu / #chinh-sach (link "Giao hàng và thanh toán" ở footer trỏ vào #chinh-sach)
     function show() {

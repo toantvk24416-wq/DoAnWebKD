@@ -49,7 +49,7 @@
       products,
       users: [
         { id: "u1", role: "customer", name: "Nguyễn Văn An", email: "an.nguyen@email.com", phone: "0912345678", birthday: "1998-03-14",
-          gender: "", promo: false, pass: hash("Davines@2026"), addresses: [{ id: "a1", name: "Nguyễn Văn An", phone: "0912345678", city: "TP. Hồ Chí Minh", ward: "Phường Bến Nghé", line: "45 Nguyễn Huệ", isDefault: true }], cart: [] },
+          gender: "", promo: false, pass: hash("Davines@2026"), addresses: [{ id: "a1", name: "Nguyễn Văn An", phone: "0912345678", city: "TP. Hồ Chí Minh", ward: "Phường Sài Gòn", line: "45 Nguyễn Huệ", isDefault: true }], cart: [] },
       ],
       admins: [{ id: "ad1", name: "Quản trị viên", email: "admin@davines.vn", pass: hash("Admin@2026") }],
       vouchers: [
@@ -397,7 +397,7 @@
     const totals = calcTotals(lines, voucherCode, { userId: user ? user.id : null, phone: customer.phone });
     if (voucherCode && totals.voucherError) return { ok: false, voucherInvalid: true, error: `Mã ${String(voucherCode).toUpperCase()}: ${totals.voucherError} Mã đã được gỡ khỏi đơn, vui lòng kiểm tra lại tổng tiền.` };
     if (expectedTotal != null && totals.total !== expectedTotal) return { ok: false, changed: true, error: `Tổng tiền đã thay đổi thành ${fmt(totals.total)} do giá hoặc ưu đãi vừa cập nhật. Vui lòng kiểm tra lại.` };
-    if (payment === "cod" && totals.total > RULES.codLimit) return { ok: false, error: `Thanh toán khi nhận hàng chỉ áp dụng cho đơn đến ${fmt(RULES.codLimit)}. Vui lòng chọn VNPay.` };
+    if (payment === "cod" && totals.total > RULES.codLimit) return { ok: false, error: `Thanh toán khi nhận hàng chỉ áp dụng cho đơn từ ${fmt(RULES.codLimit)} trở xuống. Vui lòng chọn VNPay.` };
     const order = buildOrder(DB, { date: new Date(), lines, totals, voucher: totals.voucher, payment, userId: user ? user.id : null, customer });
     lines.forEach((l) => {
       const { p, v } = findVariant(l.sku);

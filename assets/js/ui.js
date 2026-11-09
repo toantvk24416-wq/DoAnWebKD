@@ -29,7 +29,10 @@
           <button class="icon-btn menu-btn" id="menu-btn" aria-label="Mở menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
           <nav class="nav" id="nav">
             <a href="index.html" class="${active === "home" ? "active" : ""}">Trang chủ</a>
-            <a href="about.html" class="${active === "about" ? "active" : ""}">Về Davines</a>
+            <div class="nav-item has-drop">
+              <a href="about.html" class="${active === "about" ? "active" : ""}" aria-haspopup="true">Về Davines</a>
+              <div class="drop"><a href="about.html#gioi-thieu">Giới thiệu về Davines</a><a href="about.html#chinh-sach">Giao hàng và thanh toán</a></div>
+            </div>
             <div class="nav-item has-mega">
               <a href="products.html" class="${active === "products" ? "active" : ""}" aria-haspopup="true">Sản phẩm</a>
               ${megaMenu()}
@@ -59,7 +62,7 @@
       if (msg) { e.preventDefault(); input.focus(); } else input.value = input.value.trim();
     };
     // Bấm vào link trong menu sản phẩm thì đóng menu ngay (khi đang ở products.html trang không tải lại)
-    $$("#nav .mega a").forEach((a) => a.addEventListener("click", () => { const m = $("#nav .has-mega"); m.classList.add("closed"); setTimeout(() => m.classList.remove("closed"), 300); }));
+    $$("#nav .mega a, #nav .drop a").forEach((a) => a.addEventListener("click", () => { const m = a.closest(".nav-item"); m.classList.add("closed"); a.blur(); setTimeout(() => m.classList.remove("closed"), 300); }));
     refreshCartCount();
     window.addEventListener("store:change", refreshCartCount);
   }
@@ -136,7 +139,7 @@
       <div class="container">
         <div class="cols">
           <div><div class="logo"><img class="logo-img" src="assets/img/brand/logo-davines-white.svg" alt="davines" width="140" height="41"></div><p class="small" style="opacity:.8;max-width:320px">Sản phẩm chăm sóc tóc bền vững từ Parma, Ý. Website đồ án môn Web – mô hình B2C.</p></div>
-          <div><h4>Mua sắm</h4><a href="products.html">Tất cả sản phẩm</a><a href="products.html?sort=best">Sản phẩm bán chạy</a><a href="products.html?sort=new">Sản phẩm mới</a><a href="${scalpHref()}">Chăm sóc theo loại da đầu</a></div>
+          <div><h4>Mua sắm</h4><a href="products.html">Tất cả sản phẩm</a><a href="products.html?sort=best">Sản phẩm bán chạy</a><a href="products.html?sort=new">Sản phẩm mới</a></div>
           <div><h4>Hỗ trợ</h4><a href="order-lookup.html">Tra cứu đơn hàng</a><a href="about.html#chinh-sach">Giao hàng và thanh toán</a></div>
           <div><h4>Tài khoản</h4><a href="${loginHref()}">Đăng nhập / Đăng ký</a><a href="account.html?tab=orders">Lịch sử đơn hàng</a></div>
         </div>
@@ -168,12 +171,6 @@
     }
     return { best: TAGS.best.has(p.id), fresh: TAGS.fresh.has(p.id) };
   }
-  // Link lọc toàn bộ sản phẩm chăm sóc da đầu (mọi tình trạng da đầu đang có trong dữ liệu)
-  function scalpHref() {
-    const vals = [...new Set(Store.products().flatMap((p) => p.hair.filter((h) => /^da đầu/i.test(h))))].sort();
-    return "products.html?" + vals.map((v) => "scalp=" + encodeURIComponent(v)).join("&");
-  }
-
   // picked: dung tích cần hiển thị giá (khi lọc theo giá); .map(UI.productCard) truyền chỉ số mảng nên phải kiểm tra .sku
   // opts.buy: thêm nút "Thêm vào giỏ" (trang danh sách) – thêm dung tích đang hiện giá, hoặc dung tích rẻ nhất còn hàng
   function productCard(p, picked, opts) {
@@ -341,14 +338,9 @@
     password: (v) => (!v || (v.length >= 8 && /\d/.test(v) && /[A-Za-z]/.test(v)) ? "" : "Mật khẩu tối thiểu 8 ký tự, gồm cả chữ và số."),
   };
 
-  // Danh sách tỉnh/thành và phường/xã rút gọn cho bản demo.
-  const PLACES = {
-    "TP. Hồ Chí Minh": ["Phường Bến Thành", "Phường Bến Nghé", "Phường Sài Gòn", "Phường Tân Định", "Phường Thủ Đức", "Phường Bình Thạnh"],
-    "TP. Hà Nội": ["Phường Hoàn Kiếm", "Phường Ba Đình", "Phường Đống Đa", "Phường Cầu Giấy", "Phường Hai Bà Trưng"],
-    "TP. Đà Nẵng": ["Phường Hải Châu", "Phường Thanh Khê", "Phường Sơn Trà", "Phường Ngũ Hành Sơn"],
-    "TP. Cần Thơ": ["Phường Ninh Kiều", "Phường Cái Răng", "Phường Bình Thủy"],
-  };
+  // Tỉnh/thành và phường/xã đầy đủ nằm trong assets/js/places.js (trang nào gọi fillPlaces phải nạp file đó trước ui.js).
   function fillPlaces(citySel, wardSel, city, ward) {
+    const PLACES = window.PLACES || {};
     citySel.innerHTML = `<option value="">Chọn tỉnh/thành</option>` + Object.keys(PLACES).map((c) => `<option ${c === city ? "selected" : ""}>${c}</option>`).join("");
     const sync = (w) => { wardSel.innerHTML = `<option value="">Chọn phường/xã</option>` + (PLACES[citySel.value] || []).map((x) => `<option ${x === w ? "selected" : ""}>${x}</option>`).join(""); };
     citySel.onchange = () => sync("");
