@@ -109,11 +109,15 @@
 
   // Chạy bằng server.js: dữ liệu nằm trong các file CSV (thư mục data). Trên Vercel: api/db.js lưu vào Postgres. Mở bằng Live Server: dùng localStorage như cũ.
   let serverMode = false;
+  // Mã phiên bản dữ liệu trên database (chỉ bản Vercel có). Gửi kèm khi lưu: nếu người khác đã lưu trước thì database từ chối
+  // thay vì để bản cũ của trình duyệt này ghi đè mất đơn hàng / tài khoản người khác vừa tạo.
+  let rev = null;
   function api(method, body) {
     try {
       const x = new XMLHttpRequest();
       x.open(method, "/api/db", false); // đồng bộ để dữ liệu ghi xong rồi trang mới được chuyển đi
       if (body) x.setRequestHeader("Content-Type", "application/json");
+      if (body && rev !== null) x.setRequestHeader("X-DB-Rev", rev);
       x.send(body);
       return { status: x.status, json: JSON.parse(x.responseText) };
     } catch (e) { return null; }
@@ -123,6 +127,7 @@
     const remote = api("GET");
     if (remote && remote.status === 200 && "db" in remote.json) {
       serverMode = true;
+      if ("rev" in remote.json) rev = remote.json.rev || "";
       if (remote.json.db) return migrate(remote.json.db);
       const db = seedDb(); // chưa có CSV: tạo dữ liệu mẫu rồi ghi xuống file
       save(db);
@@ -163,6 +168,15 @@
   function save(db) {
     if (!serverMode) { localStorage.setItem(DB_KEY, JSON.stringify(db)); return; }
     const r = api("POST", JSON.stringify(db));
+    if (r && r.status === 409 && r.json.db) {
+      // Người khác vừa lưu: lấy dữ liệu mới nhất, không ghi đè
+      rev = r.json.rev || "";
+      DB = migrate(r.json.db);
+      window.dispatchEvent(new CustomEvent("store:change"));
+      warn("Dữ liệu vừa được người khác cập nhật nên thao tác chưa được lưu. Trang đã tải dữ liệu mới, bạn hãy thực hiện lại.");
+      return;
+    }
+    if (r && r.status === 200 && "rev" in r.json) rev = r.json.rev;
     if (!r || r.status !== 200) warn(location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "Không ghi được dữ liệu xuống CSV. Hãy kiểm tra server.js còn đang chạy không." : "Không lưu được dữ liệu lên database. Hãy thử lại sau.");
     else if (r.json.pending && r.json.pending.length) warn(`Chưa ghi được ${r.json.pending.join(", ")} vì file đang mở. Hãy đóng file, dữ liệu sẽ tự được ghi.`);
   }
@@ -170,11 +184,17 @@
   function commit() { save(DB); window.dispatchEvent(new CustomEvent("store:change")); }
   // Quay lại tab này thì lấy dữ liệu mới nhất, tránh ghi đè đơn vừa được tạo ở tab hoặc trình duyệt khác.
   function refresh() {
-    let next = null;
-    if (serverMode) { const r = api("GET"); if (r && r.status === 200 && r.json.db) next = migrate(r.json.db); }
-    else { try { const raw = localStorage.getItem(DB_KEY); if (raw) next = migrate(JSON.parse(raw)); } catch (e) { /* giữ dữ liệu hiện tại */ } }
+    const next = latest();
     if (next && JSON.stringify(next) !== JSON.stringify(DB)) { DB = next; window.dispatchEvent(new CustomEvent("store:change")); }
   }
+  function latest() {
+    let next = null;
+    if (serverMode) { const r = api("GET"); if (r && r.status === 200 && r.json.db) { if ("rev" in r.json) rev = r.json.rev || ""; next = migrate(r.json.db); } }
+    else { try { const raw = localStorage.getItem(DB_KEY); if (raw) next = migrate(JSON.parse(raw)); } catch (e) { /* giữ dữ liệu hiện tại */ } }
+    return next;
+  }
+  // Trước mỗi thao tác có lưu dữ liệu: lấy bản mới nhất rồi mới sửa, để không ghi đè thay đổi của người khác.
+  function fresh(fn) { return function (...args) { const next = latest(); if (next) DB = next; return fn.apply(this, args); }; }
   window.addEventListener("focus", refresh);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 
@@ -440,6 +460,8 @@
   // ---------- Quản trị sản phẩm / kho / voucher ----------
   function saveProduct(p) {
     const i = DB.products.findIndex((x) => x.id === p.id);
+    // Tồn kho chỉ đổi qua nhập kho / đặt hàng: giữ số tồn mới nhất, không lấy số cũ trong form đang mở
+    if (i >= 0) p.variants.forEach((v) => { const cur = DB.products[i].variants.find((x) => x.sku === v.sku); if (cur) v.stock = cur.stock; });
     if (i >= 0) DB.products[i] = p; else DB.products.push(p);
     commit();
   }
@@ -503,10 +525,12 @@
     RULES, STATUS, NEXT_STATUS, fmt, statusLabel, unitPrice, priceRange, inStock, cleanDesc,
     get db() { return DB; },
     products, product, findVariant,
-    today, currentUser, signIn, login, logout, register, requestReset, resetInfo, resetPassword, hasOrdered, updateProfile, changePassword, saveAddress, deleteAddress,
+    today, currentUser, signIn, logout, resetInfo, hasOrdered,
+    login: fresh(login), register: fresh(register), requestReset: fresh(requestReset), resetPassword: fresh(resetPassword),
+    updateProfile: fresh(updateProfile), changePassword: fresh(changePassword), saveAddress: fresh(saveAddress), deleteAddress: fresh(deleteAddress),
     currentAdmin, adminLogin, adminLogout,
-    cart, cartCount, addToCart, setQty, removeFromCart,
-    checkVoucher, calcTotals, placeOrder, order, lookupOrder, myOrders, updateOrderStatus,
-    saveProduct, adjustStock, saveVoucher, deleteVoucher, report, reset,
+    cart, cartCount, addToCart: fresh(addToCart), setQty: fresh(setQty), removeFromCart: fresh(removeFromCart),
+    checkVoucher, calcTotals, placeOrder: fresh(placeOrder), order, lookupOrder, myOrders, updateOrderStatus: fresh(updateOrderStatus),
+    saveProduct: fresh(saveProduct), adjustStock: fresh(adjustStock), saveVoucher: fresh(saveVoucher), deleteVoucher: fresh(deleteVoucher), report, reset,
   };
 })();

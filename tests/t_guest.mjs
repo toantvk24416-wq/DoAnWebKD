@@ -151,7 +151,7 @@ export default async function (t, check) {
   await t.go(B + "product.html?id=dau-goi-calming");
   await t.js(`const q=document.querySelector('#qty'); q.value='3'; q.onchange(); document.querySelector('#add').click()`);
   await t.go(B + "checkout.html");
-  await t.js(`const p=Store.product('dau-goi-calming'); p.variants[0].stock=2; Store.saveProduct(p);`);
+  await t.js(`const v=Store.product('dau-goi-calming').variants[0]; Store.adjustStock(v.sku, 2 - v.stock, 'Kiểm kho');`);
   await t.js(`const f=document.querySelector('#form'); f.name.value='A'; f.phone.value='0912222333'; f.email.value='a@test.vn'; f.city.value='TP. Cần Thơ'; f.city.onchange(); f.ward.value='Phường Ninh Kiều'; f.line.value='1'; document.querySelector('[value=cod]').click(); document.querySelector('#place').click()`);
   await t.sleep(200);
   const stockMsg = await t.js(`const m=document.querySelector('.modal .receipt'); return m ? 'TẠO ĐƠN: '+m.innerText.match(/CALMING[^\\n]*/)?.[0] : document.querySelector('.modal')?.innerText`);

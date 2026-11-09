@@ -62,15 +62,24 @@ function makeStore(client) {
     const [row] = await client.query(`select json_build_object(${parts}) as db`, []);
     let t = row.db;
     if (typeof t === "string") t = JSON.parse(t);
-    if (!t.meta.length || !t.products.length) return null; // chưa có dữ liệu: web sẽ tạo dữ liệu mẫu rồi gửi lên
+    const rev = (t.meta.find((m) => m.key === "rev") || {}).value || "";
+    if (!t.meta.length || !t.products.length) return { db: null, rev }; // chưa có dữ liệu: web sẽ tạo dữ liệu mẫu rồi gửi lên
     for (const n of NAMES) t[n] = t[n].map(({ _i, ...r }) => r);
-    return fromTables(t);
+    t.meta = t.meta.filter((m) => m.key !== "rev");
+    return { db: fromTables(t), rev };
   }
 
-  async function write(db) {
+  // baseRev: phiên bản dữ liệu trình duyệt đang có. Khác với phiên bản trên database (người khác vừa lưu) -> từ chối.
+  async function write(db, baseRev) {
     await init();
     const tables = toTables(db);
-    const list = [];
+    const newRev = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    tables.meta = tables.meta.filter((m) => m.key !== "rev").concat({ key: "rev", value: newRev });
+    const list = [['lock table "meta" in exclusive mode', []]]; // mỗi lúc chỉ một lần ghi
+    if (baseRev !== undefined) {
+      // chia cho 0 (lỗi 22012) khi phiên bản không khớp -> cả giao dịch bị hủy, không ghi gì
+      list.push([`select 1 / (case when coalesce((select "value" from "meta" where "key" = 'rev'), '') = $1 then 1 else 0 end)`, [String(baseRev)]]);
+    }
     // Xóa bảng con trước, ghi bảng cha trước
     for (const n of [...NAMES].reverse()) list.push([`delete from ${q(n)}`, []]);
     for (const n of NAMES) {
@@ -79,7 +88,9 @@ function makeStore(client) {
       const cols = ["_i", ...Object.keys(SCHEMA[n])].map(q).join(", ");
       list.push([`insert into ${q(n)} (${cols}) select ${cols} from jsonb_populate_recordset(null::${q(n)}, $1::jsonb)`, [JSON.stringify(rows)]]);
     }
-    await client.tx(list);
+    try { await client.tx(list); }
+    catch (e) { if (e && e.code === "22012") { const err = new Error("conflict"); err.conflict = true; throw err; } throw e; }
+    return newRev;
   }
 
   return { read, write };
@@ -103,15 +114,20 @@ function makeHandler(getClient) {
     try { client = getClient(); } catch (e) { return send(503, { error: e.message }); } // chưa nối database: web tự lưu vào trình duyệt
     store = store && store.client === client ? store : Object.assign(makeStore(client), { client });
     try {
-      if (req.method === "GET") return send(200, { db: await store.read() });
+      if (req.method === "GET") return send(200, await store.read());
       if (req.method === "POST") {
         if (!String(req.headers["content-type"] || "").startsWith("application/json")) return send(415, { error: "Cần JSON" });
         let db = req.body;
         if (db === undefined) db = await readBody(req);
         if (typeof db === "string") db = JSON.parse(db);
         if (!db || !Array.isArray(db.products) || !Array.isArray(db.orders) || !Array.isArray(db.users)) return send(400, { error: "Dữ liệu không hợp lệ" });
-        await store.write(db);
-        return send(200, { ok: true, pending: [] });
+        const base = req.headers["x-db-rev"];
+        try {
+          return send(200, { ok: true, pending: [], rev: await store.write(db, base === undefined ? undefined : String(base)) });
+        } catch (e) {
+          if (!e.conflict) throw e;
+          return send(409, { error: "Dữ liệu đã được người khác cập nhật", conflict: true, ...(await store.read()) });
+        }
       }
       return send(405, { error: "Không hỗ trợ" });
     } catch (e) {
