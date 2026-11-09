@@ -127,8 +127,8 @@
       return list.sort((a, b) => out(a) - out(b) || generic(a) - generic(b) || sorters[state.sort](a, b));
     }
 
-    // Mỗi nhóm lọc là một mục thu gọn được; nhóm đầu tiên và nhóm đang có lựa chọn mở sẵn
-    const opened = new Set(["needs", ...GROUPS.filter((g) => state[g.key].length).map((g) => g.key), ...(state.price.length ? ["price"] : []), ...(state.sale ? ["sale"] : [])]);
+    // Mỗi nhóm lọc thu gọn sẵn, chỉ xổ xuống khi người dùng bấm vào mũi tên (số bên cạnh cho biết nhóm đang có bao nhiêu lựa chọn)
+    const opened = new Set();
     function renderFilters() {
       const group = (key, label, body, n) => `
         <fieldset class="fgroup${opened.has(key) ? " open" : ""}" data-g="${key}">

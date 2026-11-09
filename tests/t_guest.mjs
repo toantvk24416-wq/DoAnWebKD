@@ -14,7 +14,7 @@ export default async function (t, check) {
   for (const l of concernLinks) {
     await t.go(B + l);
     const n = await t.js(`return document.querySelectorAll('.card').length`);
-    check(`Ô "Tìm theo vấn đề tóc" ${decodeURIComponent(l.split("=")[1])} có sản phẩm`, n > 0, `${n} sản phẩm`);
+    check(`Ô "Tìm theo vấn đề" ${decodeURIComponent(l.split("=")[1])} có sản phẩm`, n > 0, `${n} sản phẩm`);
   }
 
   // ---- Danh sách
