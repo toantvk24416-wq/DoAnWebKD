@@ -89,10 +89,12 @@
       f.onsubmit = (e) => {
         e.preventDefault();
         if (!UI.validate(f, { email: [V.required("email"), V.email], pass: [V.required("mật khẩu")] })) return;
-        // Lỡ nhập tài khoản quản trị ở tab Khách hàng vẫn vào thẳng trang quản trị
-        const r = Store.signIn(f.email.value, f.pass.value);
+        // Tab Khách hàng chỉ nhận tài khoản khách hàng; tài khoản quản trị phải đăng nhập ở tab Quản trị
+        const em = f.email.value.trim().toLowerCase();
+        if (Store.db.admins.some((a) => a.email.toLowerCase() === em)) { f.pass.value = ""; setErr(f.email, "Đây là tài khoản quản trị. Hãy đăng nhập ở tab Quản trị."); return; }
+        const r = Store.login(f.email.value, f.pass.value);
         if (!r.ok) { f.pass.value = ""; setErr(f.pass, UI.esc(r.error)); return; }
-        location.href = r.role === "admin" ? "admin/index.html" : next;
+        location.href = next;
       };
       UI.$("#to-reg").onclick = () => registerView();
       UI.$("#forgot").onclick = () => forgot(f.email.value.trim());

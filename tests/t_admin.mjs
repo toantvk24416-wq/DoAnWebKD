@@ -4,6 +4,11 @@ export default async function (t, check) {
   await t.viewport(1440, 900);
   await t.go(B + "admin/index.html");
   check("Chưa đăng nhập quản trị → về trang đăng nhập chung, tab Quản trị", (await t.js(`return location.pathname + location.search`)) === "/login.html?tab=admin");
+  await t.go(B + "login.html");
+  await t.js(`const f=document.querySelector('#f'); f.email.value='admin@davines.vn'; f.pass.value='Admin@2026'; f.requestSubmit()`);
+  await S(300);
+  check("Tab Khách hàng không đăng nhập được tài khoản quản trị", (await t.js(`return location.pathname === "/login.html" && !Store.currentAdmin() && !Store.currentUser() && /tab Quản trị/.test(document.body.innerText)`)));
+  await t.go(B + "login.html?tab=admin");
   await t.js(`const f=document.querySelector('#f'); f.email.value='admin@davines.vn'; f.pass.value='Admin@2026'; f.requestSubmit()`);
   await S(800);
   await t.shot("20-admin-report", true);
@@ -42,8 +47,10 @@ export default async function (t, check) {
   // sản phẩm
   await t.js(`location.hash='#products'`); await S(200);
   await t.shot("22-admin-products");
+  const pg = await t.js(`const ids=()=>new Set([...document.querySelectorAll('#plist [data-e]')].map(b=>b.dataset.e)); const a=ids(); document.querySelector('#ppager [data-p="2"]').click(); const b=ids(); const n=Store.products({all:true}).length; const pages=document.querySelectorAll('#ppager button').length; document.querySelector('#ppager [data-p="1"]').click(); return [a.size, b.size, [...a].some(x=>b.has(x)), pages, Math.ceil(n/10)]`);
+  check("Danh sách sản phẩm quản trị: 10 sản phẩm mỗi trang, có trang 2", pg[0] === 10 && pg[1] > 0 && !pg[2] && pg[3] === pg[4], JSON.stringify(pg));
   const edit = await t.js(`
-    document.querySelector('[data-e="dau-goi-momo"]').click(); await new Promise(r=>setTimeout(r,100));
+    const pq=document.querySelector('#pq'); pq.value='momo'; pq.oninput(); document.querySelector('[data-e="dau-goi-momo"]').click(); await new Promise(r=>setTimeout(r,100));
     const pin=document.querySelector('#vt [data-f=price]'); pin.value='600000'; pin.oninput();
     document.querySelector('#ef').requestSubmit(); await new Promise(r=>setTimeout(r,100));
     return Store.product('dau-goi-momo').variants[0].price`);
@@ -60,14 +67,14 @@ export default async function (t, check) {
   check("Thêm sản phẩm mới", added !== "none", added);
   const newOnStore = await t.js(`const p=Store.products().find(p=>p.name==='TEST Dầu xả'); return p? (Store.inStock(p)?'còn':'hết hàng, không có ảnh') : 'không hiện'`);
   check("Sản phẩm mới tạo không hiện ngay trên cửa hàng (chờ mở bán)", newOnStore === "không hiện", newOnStore);
-  const emptySkuEdit = await t.js(`document.querySelector('[data-e="dau-goi-melu"]').click(); await new Promise(r=>setTimeout(r,100)); document.querySelector('#ef').requestSubmit(); await new Promise(r=>setTimeout(r,100)); return [...document.querySelectorAll('.toast')].pop()?.innerText`);
+  const emptySkuEdit = await t.js(`const pq2=document.querySelector('#pq'); pq2.value='melu'; pq2.oninput(); document.querySelector('[data-e="dau-goi-melu"]').click(); await new Promise(r=>setTimeout(r,100)); document.querySelector('#ef').requestSubmit(); await new Promise(r=>setTimeout(r,100)); return [...document.querySelectorAll('.toast')].pop()?.innerText`);
   check("Sửa sản phẩm có dung tích thiếu SKU (MELU)", !emptySkuEdit?.includes("cần có SKU"), emptySkuEdit);
   await t.js(`document.querySelectorAll('.modal-back').forEach(m=>m.remove())`);
   // ngừng bán -> giỏ khách
   await t.go(B + "product.html?id=dau-goi-nounou");
   await t.js(`document.querySelector('#add').click()`);
   await t.go(B + "admin/index.html#products");
-  await t.js(`document.querySelector('[data-t="dau-goi-nounou"]').click(); await new Promise(r=>setTimeout(r,100)); document.querySelector('[data-ok]').click()`);
+  await t.js(`const pq3=document.querySelector('#pq'); pq3.value='nounou'; pq3.oninput(); document.querySelector('[data-t="dau-goi-nounou"]').click(); await new Promise(r=>setTimeout(r,100)); document.querySelector('[data-ok]').click()`);
   await S(200);
   await t.go(B + "cart.html");
   const cartTxt = await t.js(`return document.querySelector('.cart-item').innerText.replace(/\\n+/g,' | ')`);

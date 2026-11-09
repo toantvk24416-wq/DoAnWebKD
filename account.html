@@ -53,10 +53,16 @@
               <div class="field"><label>Ngày sinh</label><input class="input" name="birthday" type="date" value="${UI.esc(u.birthday)}" max="${Store.today()}"></div>
             </div>
             <div class="field"><label>Giới tính</label><div style="display:flex;gap:24px">${[["female", "Nữ"], ["male", "Nam"], ["other", "Khác"]].map(([k, l]) => `<label class="check"><input type="radio" name="gender" value="${k}" ${u.gender === k ? "checked" : ""}> ${l}</label>`).join("")}</div></div>
-            <button class="btn" id="save" disabled>Lưu thay đổi</button>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <button class="btn" id="save" disabled>Lưu thay đổi</button>
+              <button class="btn btn-outline" type="button" id="undo" disabled>Hủy thay đổi</button>
+            </div>
           </form>`;
         const f = UI.$("#f");
-        f.oninput = f.onchange = () => (UI.$("#save").disabled = false); // chỉ bật nút Lưu khi có thay đổi
+        // chỉ bật nút Lưu / Hủy khi có thay đổi
+        f.oninput = f.onchange = () => { UI.$("#save").disabled = false; UI.$("#undo").disabled = false; };
+        // Hủy thay đổi: trả form về đúng thông tin đã lưu, xóa các báo lỗi
+        UI.$("#undo").onclick = () => { VIEWS.info(); UI.toast("Đã khôi phục thông tin đã lưu."); };
         f.onsubmit = (e) => {
           e.preventDefault();
           if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], birthday: [(v) => (v && v > Store.today() ? "Ngày sinh không được ở tương lai." : v && v < "1900-01-01" ? "Ngày sinh không hợp lệ." : "")] })) return;
