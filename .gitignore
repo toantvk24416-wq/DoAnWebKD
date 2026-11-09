@@ -1,5 +1,4 @@
 # Cấu hình riêng của máy / công cụ
-.claude/
 .vercel/
 node_modules/
 __pycache__/
