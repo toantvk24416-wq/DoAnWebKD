@@ -237,13 +237,15 @@
           <div id="vbody"></div>`;
         $$("[data-vtab]").forEach((b) => (b.onclick = () => { V.tab = b.dataset.vtab; VIEWS.vouchers(); }));
 
+        // Ô lọc: khi chưa lọc chỉ hiện tên ô (Hiệu lực / Trạng thái); lựa chọn "Tất cả" nằm trong danh sách xổ xuống
+        const pick = (id, label, value, opts) => `<select class="input" id="${id}" aria-label="${label}"><option value="all" hidden ${value === "all" ? "selected" : ""}>${label}</option>${opts.map(([k, l]) => `<option value="${k}" ${value === k && k !== "all" ? "selected" : ""}>${l}</option>`).join("")}</select>`;
         if (V.tab === "codes") {
           $("#vbody").innerHTML = `
             <div class="panel">
               <div class="filters-row vfilters">
                 <div class="field"><input class="input" id="vq" placeholder="Tìm theo mã hoặc mô tả" value="${esc(V.q)}"></div>
-                <div class="field"><select class="input" id="vperiod">${[["all", "Hiệu lực: Tất cả thời gian"], ["now", "Đang trong thời gian"], ["future", "Sắp diễn ra"], ["past", "Đã kết thúc"]].map(([k, l]) => `<option value="${k}" ${V.period === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-                <div class="field"><select class="input" id="vstatus">${[["all", "Trạng thái: Tất cả"], ["running", "Đang chạy"], ["upcoming", "Chưa bắt đầu"], ["off", "Đã tắt"], ["expired", "Hết hạn"], ["used-up", "Hết lượt"]].map(([k, l]) => `<option value="${k}" ${V.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+                <div class="field">${pick("vperiod", "Hiệu lực", V.period, [["all", "Tất cả thời gian"], ["now", "Đang trong thời gian"], ["future", "Sắp diễn ra"], ["past", "Đã kết thúc"]])}</div>
+                <div class="field">${pick("vstatus", "Trạng thái", V.status, [["all", "Tất cả"], ["running", "Đang chạy"], ["upcoming", "Chưa bắt đầu"], ["off", "Đã tắt"], ["expired", "Hết hạn"], ["used-up", "Hết lượt"]])}</div>
                 <span class="small muted" id="vcount" style="margin-left:auto;align-self:center"></span>
               </div>
               <div class="table-scroll"><table class="table vtable"><thead><tr><th>Mã</th><th>Ưu đãi</th><th>Đơn tối thiểu</th><th>Thời gian</th><th>Đã dùng</th><th>Trạng thái</th><th></th></tr></thead><tbody id="vrows"></tbody></table></div>

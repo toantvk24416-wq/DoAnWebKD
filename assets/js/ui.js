@@ -81,7 +81,9 @@
 
     const needs = count((p) => p.needs), topNeeds = needs.slice(0, 6), restNeeds = needs.slice(6).map(([v]) => v);
     const restCount = all.filter((p) => p.needs.some((n) => restNeeds.includes(n))).length;
-    const hair = count((p) => p.hair).sort((a, b) => (a[0] === "Mọi loại tóc") - (b[0] === "Mọi loại tóc"));
+    const isScalp = (v) => /^da đầu/i.test(v);
+    const hair = count((p) => p.hair.filter((h) => !isScalp(h))).sort((a, b) => (a[0] === "Mọi loại tóc") - (b[0] === "Mọi loại tóc"));
+    const scalp = count((p) => p.hair.filter(isScalp));
     const onSale = all.filter((p) => p.sale > 0).sort((a, b) => b.sale - a.sale);
     const maxSale = onSale.length ? onSale[0].sale : 0;
 
@@ -108,7 +110,8 @@
               ${col("Theo mức giá", PRICE_BANDS.map(([a, b, l]) => row(`products.html?price=${a}-${b}`, l, all.filter((p) => priceVariant(p, a, b)).length)))}
             </div>
             <div>${col("Nhu cầu chăm sóc", topNeeds.map(([v, n]) => row(url([["needs", v]]), v, n)).concat(restNeeds.length ? [row(url(restNeeds.map((v) => ["needs", v])), "Nhu cầu khác", restCount)] : []))}</div>
-            <div>${col("Loại tóc, da đầu", hair.map(([v, n]) => row(url([[/^da đầu/i.test(v) ? "scalp" : "hair", v]]), v, n)))}</div>
+            <div>${col("Loại tóc", hair.map(([v, n]) => row(url([["hair", v]]), v, n)))}</div>
+            <div>${col("Loại da đầu", scalp.map(([v, n]) => row(url([["scalp", v]]), v, n)))}</div>
             <div>${col("Dòng sản phẩm", count((p) => [p.collection]).map(([v, n]) => row(url([["collection", v]]), v, n)))}</div>
             ${sale}
           </div>

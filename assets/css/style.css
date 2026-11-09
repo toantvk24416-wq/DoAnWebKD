@@ -390,8 +390,8 @@ textarea.input { height: auto; padding: 10px 14px; }
 .has-mega.closed > .mega { display: none; }
 .has-mega > a { display: flex; align-items: center; height: 70px; }
 .mega .container { display: block; height: auto; padding-top: 28px; padding-bottom: 20px; }
-.mega-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
-.mega-cols.with-sale { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(240px, 1.25fr); }
+.mega-cols { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px; }
+.mega-cols.with-sale { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(240px, 1.3fr); }
 .mega h5 { font: 500 11px/16px var(--f-sans); letter-spacing: 1.5px; text-transform: uppercase; color: var(--c-text-2); margin: 0 0 6px; padding-bottom: 10px; border-bottom: 1px solid var(--c-border); }
 .mega h5:not(:first-child) { margin-top: 22px; }
 .mega-cols a:not(.link):not(.mega-sale-item) { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; text-decoration: none; }
