@@ -43,7 +43,7 @@
           <div class="kv grand"><span>Tổng thanh toán</span><span>${fmt(o.total)}</span></div>
         </div>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-          <a class="btn btn-outline" href="${user ? `account.html?tab=orders&code=${o.code}` : `order-lookup.html?code=${o.code}`}">${user ? "Xem đơn trong tài khoản" : "Tra cứu đơn hàng"}</a>
+          <a class="btn btn-outline" href="${user ? `account.html?tab=orders&code=${o.code}` : `order-lookup.html`}">${user ? "Xem đơn trong tài khoản" : "Tra cứu đơn hàng"}</a>
           <a class="btn" href="products.html">Tiếp tục mua sắm</a>
         </div>`;
     }

@@ -31,9 +31,7 @@
     UI.header("lookup");
     UI.footer();
     const form = UI.$("#form");
-    // Điền sẵn đơn vừa đặt trong phiên (nếu có) để khách không phải gõ lại
-    const last = Store.order(UI.qs("code") || sessionStorage.getItem("davines_last_order") || "");
-    if (last && sessionStorage.getItem("davines_last_order") === last.code) { form.code.value = last.code; form.email.value = last.customer.email; }
+    // Không tự điền mã đơn / email: khách tự nhập, tránh lộ thông tin đơn trên máy dùng chung
 
     form.onsubmit = (e) => {
       e.preventDefault();
@@ -49,7 +47,6 @@
         : `<div class="empty"><h3>Không tìm thấy đơn hàng</h3><p class="muted">Kiểm tra lại mã đơn và email. Mã đơn và email phải khớp với thông tin lúc đặt hàng.</p></div>`;
       if (res.sourceError) UI.$("#retry").onclick = () => form.requestSubmit();
     };
-    if (form.code.value && UI.qs("code")) form.requestSubmit();
   </script>
 </body>
 </html>

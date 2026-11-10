@@ -118,9 +118,9 @@ export default async function (t, check) {
   check("Không xem được trang thành công của đơn người khác", (await t.js(`return document.body.innerText`)).includes("Không tìm thấy đơn hàng"));
   // tra cứu
   await t.go(B + "order-lookup.html");
-  const pre = await t.js(`return document.querySelector('#code').value`);
-  check("Tra cứu điền sẵn đơn vừa đặt", pre === code1, pre);
-  const wrong = await t.js(`const f=document.querySelector('#form'); f.email.value='sai@test.vn'; f.requestSubmit(); return document.querySelector('#result').innerText`);
+  const pre = await t.js(`return document.querySelector('#code').value + '|' + document.querySelector('#email').value + '|' + document.querySelector('#result').innerText.trim()`);
+  check("Tra cứu không tự điền mã đơn / email của đơn vừa đặt", pre === "||", pre);
+  const wrong = await t.js(`const f=document.querySelector('#form'); f.code.value='${code1}'; f.email.value='sai@test.vn'; f.requestSubmit(); return document.querySelector('#result').innerText`);
   check("Tra cứu sai email không lộ đơn", wrong.includes("Không tìm thấy"), "");
   const fmtErr = await t.js(`const f=document.querySelector('#form'); f.code.value='DV12'; f.requestSubmit(); return document.querySelector('.field.error .err')?.innerText`);
   check("Tra cứu sai định dạng mã báo lỗi", !!fmtErr, fmtErr);
