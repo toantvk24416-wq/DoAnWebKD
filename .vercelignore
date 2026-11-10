@@ -1,5 +1,5 @@
 # Không đưa dữ liệu CSV, máy chủ Node chạy trên máy, công cụ, test, ảnh gốc và tài liệu lên web.
-# Trên Vercel dữ liệu lưu vào database Postgres (Neon) qua api/db.js thay cho các file CSV.
+# Trên Vercel không có server.js nên web tự lưu dữ liệu vào localStorage của từng trình duyệt.
 data/
 server.js
 chay-web.bat

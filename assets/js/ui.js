@@ -338,7 +338,7 @@
     required: (label) => (v) => (v ? "" : `Vui lòng nhập ${label}.`),
     email: (v) => (!v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? "" : "Email không hợp lệ."),
     phone: (v) => (!v || /^0(3|5|7|8|9)\d{8}$/.test(v) ? "" : "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 03/05/07/08/09)."),
-    password: (v) => (!v || (v.length >= 8 && /\d/.test(v) && /[A-Za-z]/.test(v)) ? "" : "Mật khẩu tối thiểu 8 ký tự, gồm cả chữ và số."),
+    password: (v) => (!v || (v.length >= 8 && v.length <= 64 && /\d/.test(v) && /[A-Za-z]/.test(v)) ? "" : "Mật khẩu từ 8 đến 64 ký tự, gồm cả chữ và số."),
   };
 
   // Tỉnh/thành và phường/xã đầy đủ nằm trong assets/js/places.js (trang nào gọi fillPlaces phải nạp file đó trước ui.js).
@@ -349,6 +349,14 @@
     citySel.onchange = () => sync("");
     sync(ward);
   }
+
+  // Khách rời trang khi cổng VNPay còn mở: báo thanh toán chưa hoàn tất ở trang kế tiếp (UC12, trường hợp quay về website)
+  try {
+    if (sessionStorage.getItem("davines_vnpay_pending")) {
+      sessionStorage.removeItem("davines_vnpay_pending");
+      setTimeout(() => toast("Thanh toán VNPay chưa hoàn tất. Đơn hàng chưa được tạo, giỏ hàng vẫn được giữ nguyên.", "error"), 300);
+    }
+  } catch (e) { /* bỏ qua */ }
 
   window.UI = { $, $$, esc, qs, here, loginHref, keywordError, KEYWORD_ERR, payLabel, header, footer, productCard, hoverImg, priceVariant, PRICE_BANDS, toast, modal, confirmBox, receipt, orderDetail, statusBadge, dt, PAY, validate, V, fillPlaces };
 })();

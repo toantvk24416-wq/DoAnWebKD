@@ -1,8 +1,0 @@
-{
-  "name": "davines-doanweb",
-  "private": true,
-  "description": "Web Davines Việt Nam. Trên máy: node server.js (lưu CSV). Trên Vercel: api/db.js (lưu Postgres Neon).",
-  "dependencies": {
-    "@neondatabase/serverless": "1.2.0"
-  }
-}

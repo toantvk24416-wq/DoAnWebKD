@@ -133,7 +133,7 @@
       const f = UI.$("#f");
       f.onsubmit = (e) => {
         e.preventDefault();
-        if (!UI.validate(f, { pass: [V.required("mật khẩu mới"), V.password], pass2: [(v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")] })) return;
+        if (!UI.validate(f, { pass: [V.required("mật khẩu mới"), V.password], pass2: [(v) => (v ? "" : "Vui lòng nhập lại mật khẩu."), (v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")] })) return;
         const r = Store.resetPassword(token, f.pass.value);
         if (!r.ok) return loginView("", UI.esc(r.error));
         loginView(r.email, "Đã đặt lại mật khẩu. Vui lòng đăng nhập bằng mật khẩu mới.");
@@ -160,11 +160,16 @@
         e.preventDefault();
         const ok = UI.validate(f, {
           name: [V.required("họ tên")], email: [V.required("email"), V.email], phone: [V.required("số điện thoại"), V.phone],
-          pass: [V.required("mật khẩu"), V.password], pass2: [(v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")],
+          pass: [V.required("mật khẩu"), V.password], pass2: [(v) => (v ? "" : "Vui lòng nhập lại mật khẩu."), (v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")],
           agree: [() => (f.agree.checked ? "" : "Vui lòng đồng ý với điều khoản sử dụng.")],
         });
         if (!ok) return;
         const r = Store.register({ name: f.name.value, email: f.email.value, phone: f.phone.value, pass: f.pass.value });
+        if (r.saveFailed) { // lưu không được: không tạo tài khoản, giữ thông tin đã nhập trừ mật khẩu
+          f.pass.value = ""; f.pass2.value = "";
+          setErr(f.pass, UI.esc(r.error));
+          return;
+        }
         if (!r.ok) {
           // BR-TK07 / UC04 EF2: email đã tồn tại -> gợi ý Đăng nhập hoặc Quên mật khẩu
           setErr(f[r.field], `${UI.esc(r.error)} Bạn có thể <button type="button" class="link small" id="dup-login">Đăng nhập</button> hoặc <button type="button" class="link small" id="dup-forgot">Quên mật khẩu</button>.`);
@@ -183,7 +188,7 @@
     if (UI.qs("reset")) resetView(UI.qs("reset"));
     else if (UI.qs("tab") === "admin") adminView();
     else if (UI.qs("mode") === "register") registerView();
-    else loginView();
+    else loginView(undefined, UI.qs("expired") ? "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." : UI.qs("need") ? "Vui lòng đăng nhập để xem tài khoản và đơn hàng của bạn." : "");
   </script>
 </body>
 </html>

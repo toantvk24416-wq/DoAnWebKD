@@ -27,7 +27,7 @@ export default async function (t, check) {
   await t.go(B + "login.html?mode=register");
   await t.shot("10-register");
   const regErr = await t.js(`const f=document.querySelector('#f'); f.name.value='Lê Test'; f.email.value='an.nguyen@email.com'; f.phone.value='0987654321'; f.pass.value='abc'; f.pass2.value='abd'; f.requestSubmit(); return [...document.querySelectorAll('.field.error .err')].map(e=>e.innerText).join(' / ')`);
-  check("Đăng ký: mật khẩu yếu, nhập lại sai", regErr.includes("8 ký tự") && regErr.includes("không khớp"), regErr);
+  check("Đăng ký: mật khẩu yếu, nhập lại sai", regErr.includes("8 đến 64") && regErr.includes("không khớp"), regErr);
   const dup = await t.js(`const f=document.querySelector('#f'); f.pass.value='Matkhau123'; f.pass2.value='Matkhau123'; f.agree.checked=true; f.requestSubmit(); return document.querySelector('.field.error .err')?.innerText`);
   check("Đăng ký: email trùng", dup?.includes("đã được đăng ký"), dup);
   // giỏ khách trước khi đăng ký

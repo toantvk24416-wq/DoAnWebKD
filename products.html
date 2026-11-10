@@ -204,7 +204,7 @@
     UI.$("#q").value = rawQ !== null && UI.keywordError(rawQ) ? rawQ : state.q;
     if (rawQ !== null && UI.keywordError(rawQ)) { state.q = ""; showQErr(UI.KEYWORD_ERR); }
     UI.$("#sort").value = state.sort;
-    UI.$("#sort").onchange = (e) => { state.sort = e.target.value; render(); };
+    UI.$("#sort").onchange = (e) => { state.sort = e.target.value; state.page = 1; render(); };
     let timer;
     function showQErr(msg) { UI.$("#q-err").textContent = msg; UI.$("#q").closest(".field").classList.toggle("error", !!msg); }
     // Gõ: ô rỗng -> bỏ lọc từ khóa; đủ 2 ký tự -> lọc ngay; chỉ khoảng trắng / 1 ký tự -> chờ, báo lỗi khi nhấn Enter

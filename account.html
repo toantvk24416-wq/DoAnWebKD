@@ -23,7 +23,14 @@
   <script src="assets/js/places.js"></script>
   <script src="assets/js/ui.js"></script>
   <script>
-    if (!Store.currentUser()) location.replace("login.html?next=account.html");
+    const expiredOnLoad = Store.sessionExpired();
+    if (!Store.currentUser()) location.replace("login.html?next=" + encodeURIComponent("account.html" + location.search) + (expiredOnLoad ? "&expired=1" : "&need=1"));
+    // Phiên hết hạn giữa chừng: mọi thao tác (mở biểu mẫu, lưu, sửa, xóa, đặt mặc định) chuyển về đăng nhập, không lưu gì
+    function sessionLost() {
+      Store.logout();
+      location.href = "login.html?next=" + encodeURIComponent("account.html?tab=" + tab) + "&expired=1";
+    }
+    ["click", "submit"].forEach((ev) => document.addEventListener(ev, (e) => { if (Store.sessionExpired()) { e.preventDefault(); e.stopImmediatePropagation(); sessionLost(); } }, true));
     UI.header("account");
     UI.footer();
     const { fmt } = Store;
@@ -66,7 +73,9 @@
         f.onsubmit = (e) => {
           e.preventDefault();
           if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], birthday: [(v) => (v && v > Store.today() ? "Ngày sinh không được ở tương lai." : v && v < "1900-01-01" ? "Ngày sinh không hợp lệ." : "")] })) return;
-          Store.updateProfile({ name: f.name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value, gender: f.gender.value });
+          const r = Store.updateProfile({ name: f.name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value, gender: f.gender.value });
+          if (r.expired) return sessionLost();
+          if (!r.ok) return UI.toast(r.error, "error"); // lưu lỗi: giữ nguyên dữ liệu vừa nhập trên biểu mẫu
           UI.toast("Đã lưu thông tin cá nhân.");
           nav(); VIEWS.info();
         };
@@ -83,8 +92,10 @@
         const f = UI.$("#f");
         f.onsubmit = (e) => {
           e.preventDefault();
-          if (!UI.validate(f, { old: [V.required("mật khẩu hiện tại")], pass: [V.required("mật khẩu mới"), V.password, (v) => (v === f.old.value ? "Mật khẩu mới phải khác mật khẩu hiện tại." : "")], pass2: [(v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")] })) return;
+          if (!UI.validate(f, { old: [V.required("mật khẩu hiện tại")], pass: [V.required("mật khẩu mới"), V.password, (v) => (v === f.old.value ? "Mật khẩu mới phải khác mật khẩu hiện tại." : "")], pass2: [(v) => (v ? "" : "Vui lòng nhập lại mật khẩu."), (v) => (v === f.pass.value ? "" : "Mật khẩu nhập lại không khớp.")] })) return;
           const r = Store.changePassword(f.old.value, f.pass.value);
+          if (r.expired) return sessionLost();
+          if (r.saveFailed) return UI.toast(r.error, "error");
           if (!r.ok) { const fld = f.old.closest(".field"); fld.classList.add("error"); fld.querySelector(".err").textContent = r.error; return; }
           f.reset(); UI.toast("Đã đổi mật khẩu.");
         };
@@ -102,8 +113,19 @@
         // BR-DC04: tối đa 10 địa chỉ -> chặn thêm địa chỉ thứ 11
         UI.$("#add").onclick = () => (u.addresses.length >= Store.RULES.maxAddresses ? UI.toast(`Bạn chỉ lưu được tối đa ${Store.RULES.maxAddresses} địa chỉ. Hãy xóa bớt địa chỉ cũ trước khi thêm mới.`, "error") : editAddress());
         UI.$$("[data-edit]").forEach((b) => (b.onclick = () => editAddress(u.addresses.find((a) => a.id === b.dataset.edit))));
-        UI.$$("[data-def]").forEach((b) => (b.onclick = () => { Store.saveAddress({ ...u.addresses.find((a) => a.id === b.dataset.def), isDefault: true }); VIEWS.address(); }));
-        UI.$$("[data-del]").forEach((b) => (b.onclick = async () => { if (await UI.confirmBox("Xóa địa chỉ?", "Địa chỉ này sẽ bị xóa khỏi tài khoản.", "Xóa")) { Store.deleteAddress(b.dataset.del); VIEWS.address(); } }));
+        UI.$$("[data-def]").forEach((b) => (b.onclick = () => {
+          const r = Store.saveAddress({ ...u.addresses.find((a) => a.id === b.dataset.def), isDefault: true });
+          if (r.expired) return sessionLost();
+          UI.toast(r.ok ? "Đã đặt làm địa chỉ mặc định." : r.error, r.ok ? undefined : "error");
+          VIEWS.address();
+        }));
+        UI.$$("[data-del]").forEach((b) => (b.onclick = async () => {
+          if (!(await UI.confirmBox("Xóa địa chỉ?", "Địa chỉ này sẽ bị xóa khỏi tài khoản.", "Xóa"))) return;
+          const r = Store.deleteAddress(b.dataset.del);
+          if (r.expired) return sessionLost();
+          UI.toast(r.ok ? "Đã xóa địa chỉ." : r.error, r.ok ? undefined : "error");
+          VIEWS.address();
+        }));
       },
       orders() {
         const list = Store.myOrders();
@@ -114,7 +136,11 @@
         const open = (code) => { const m = UI.modal(`${UI.orderDetail(Store.order(code))}<div class="modal-actions"><button class="btn" data-close>Đóng</button></div>`, { wide: true }); };
         UI.$$("[data-o]").forEach((b) => (b.onclick = () => open(b.dataset.o)));
         const c = UI.qs("code");
-        if (c && list.some((o) => o.code === c)) { open(c); history.replaceState(null, "", "account.html?tab=orders"); }
+        if (c) {
+          if (list.some((o) => o.code === c)) open(c);
+          else UI.toast("Không thể truy cập đơn hàng này. Đơn không tồn tại hoặc không thuộc tài khoản của bạn.", "error");
+          history.replaceState(null, "", "account.html?tab=orders");
+        }
       },
     };
 
@@ -134,7 +160,8 @@
         e.preventDefault();
         if (!UI.validate(f, { name: [V.required("họ tên")], phone: [V.required("số điện thoại"), V.phone], city: [(v) => (v ? "" : "Vui lòng chọn tỉnh/thành.")], ward: [(v) => (v ? "" : "Vui lòng chọn phường/xã.")], line: [V.required("địa chỉ")] })) return;
         const r = Store.saveAddress({ id: a?.id, name: f.name.value.trim(), phone: f.phone.value.trim(), city: f.city.value, ward: f.ward.value, line: f.line.value.trim(), isDefault: f.isDefault.checked });
-        if (r && !r.ok) return UI.toast(r.error, "error");
+        if (r.expired) return sessionLost();
+        if (!r.ok) return UI.toast(r.error, "error"); // lưu lỗi: giữ biểu mẫu và dữ liệu vừa nhập
         m.close(); UI.toast(a ? "Đã cập nhật địa chỉ." : "Đã thêm địa chỉ."); VIEWS.address();
       };
     }

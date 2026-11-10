@@ -61,7 +61,7 @@ export default async function (t, check) {
   check("Chọn dung tích hết hàng: khóa nút thêm", outBtn.startsWith("true"), outBtn);
   await t.js(`document.querySelector('.size-btn:not(.out)').click()`);
   const qtyClamp = await t.js(`const q=document.querySelector('#qty'); for(let i=0;i<15;i++) document.querySelector('#plus').click(); const a=q.value; q.value='0'; q.onchange(); const b=q.value; q.value='abc'; q.onchange(); const c=q.value; q.value='-5'; q.onchange(); return [a,b,c,q.value].join(',')`);
-  check("Số lượng bị chặn 1–10", qtyClamp === "10,1,1,1", qtyClamp);
+  check("Số lượng chỉ nhận số nguyên dương 1–10; nhập sai thì giữ số lượng cũ", qtyClamp === "10,10,10,10", qtyClamp);
   const price = await t.js(`return document.querySelector('.price-big').innerText`);
   check("Giá khuyến mãi hiển thị kèm giá gốc", /giảm 10%/i.test(price), price);
   await t.js(`const q=document.querySelector('#qty'); q.value='10'; q.onchange(); document.querySelector('#add').click()`);

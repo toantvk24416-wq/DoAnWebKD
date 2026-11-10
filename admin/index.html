@@ -69,13 +69,19 @@
           </form>
           <div id="rep"></div>`;
         const f = $("#rf");
+        // đúng 12 tháng là hợp lệ (vd 10/11/2025 → 10/11/2026); dài hơn một ngày là vượt
+        const plusYear = (d) => { const x = new Date(d + "T00:00:00"); x.setFullYear(x.getFullYear() + 1); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
         const show = () => {
           const ok = UI.validate(f, {
             from: [(v) => (v ? "" : "Chọn ngày bắt đầu.")],
-            to: [(v) => (!v ? "Chọn ngày kết thúc." : v > to0 ? "Không được sau hôm nay." : v < f.from.value ? "Phải sau ngày bắt đầu." : (new Date(v) - new Date(f.from.value)) / 86400000 > 366 ? "Khoảng thời gian tối đa 12 tháng." : "")],
+            to: [(v) => (!v ? "Chọn ngày kết thúc." : v > to0 ? "Không được sau hôm nay." : v < f.from.value ? "Phải sau ngày bắt đầu." : f.from.value && v > plusYear(f.from.value) ? "Khoảng thời gian tối đa 12 tháng." : "")],
           });
           if (!ok) return;
           const r = Store.report(f.from.value, f.to.value);
+          if (!r.orders) { // không có đơn trong kỳ: báo rõ, không giữ lại kết quả của kỳ trước
+            $("#rep").innerHTML = `<div class="panel empty"><h3>Không có dữ liệu phù hợp</h3><p class="muted small" style="margin:0">Không có đơn hàng nào trong khoảng từ ${esc(f.from.value.split("-").reverse().join("/"))} đến ${esc(f.to.value.split("-").reverse().join("/"))}. Hãy đổi khoảng thời gian.</p></div>`;
+            return;
+          }
           const maxW = Math.max(1, ...r.weeks.map((w) => w.value));
           const maxS = Math.max(1, ...Object.values(r.byStatus));
           $("#rep").innerHTML = `
@@ -173,6 +179,7 @@
             const p = Store.product(b.dataset.t);
             if (p.active && !(await UI.confirmBox("Ngừng bán sản phẩm?", `${p.name} sẽ bị ẩn khỏi cửa hàng và hiện "Không khả dụng" trong giỏ của khách.`, "Ngừng bán"))) return;
             p.active = !p.active; Store.saveProduct(p); draw();
+            UI.toast(p.active ? `Đã mở bán lại ${esc(p.name)}.` : `Đã ngừng bán ${esc(p.name)}.`);
           }));
         };
         ["#pq", "#pc", "#pa"].forEach((id) => ($(id).oninput = () => { page = 1; draw(); }));
@@ -408,6 +415,9 @@
         const bad = p.variants.find((v) => !v.sku || !v.size || !(v.price >= 1000));
         if (p.variants.some((v) => !(Number.isInteger(+v.sale) && +v.sale >= 0 && +v.sale <= 50))) return UI.toast("Mức giảm của mỗi dung tích phải từ 0 đến 50%.", "error");
         if (bad) return UI.toast("Mỗi dung tích cần có SKU, tên dung tích và giá từ 1.000 ₫.", "error");
+        // dung tích phải có số lớn hơn 0 (vd 250 ml); 0 ml hoặc chữ không có số bị chặn
+        const sizeOk = (sz) => { const n = String(sz).match(/\d+(?:[.,]\d+)?/g) || []; return n.length > 0 && n.every((x) => parseFloat(x.replace(",", ".")) > 0); };
+        if (p.variants.some((v) => !sizeOk(v.size))) return UI.toast("Dung tích phải có số lớn hơn 0, ví dụ 250 ml.", "error");
         if (new Set(skus).size !== skus.length || p.variants.some((v) => { const f2 = Store.findVariant(v.sku); return f2 && f2.p.id !== p.id; })) return UI.toast("SKU bị trùng với sản phẩm khác.", "error");
         Object.assign(p, { name: f.name.value.trim(), kind: f.kind.value.trim(), collection: f.collection.value.trim(), short: f.short.value.trim(), description: f.description.value.trim() || f.short.value.trim(), needs: $$("[name=needs]:checked", f).map((x) => x.value), hair: $$("[name=hair]:checked", f).map((x) => x.value) });
         if (isNew) { p.id = (p.kind + "-" + p.name).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36); p.line = p.name.split(" ")[0].toUpperCase(); p.createdAt = Store.today(); }

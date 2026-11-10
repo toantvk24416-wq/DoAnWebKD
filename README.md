@@ -41,17 +41,12 @@ Mỗi lần có thay đổi (đăng ký, thêm vào giỏ của thành viên, đ
 
 **Giới hạn:** CSV không phải cơ sở dữ liệu thật. Server chỉ nhận kết nối từ chính máy này, và nếu 2 tab cùng bấm lưu trong đúng một lúc thì lần lưu sau sẽ thắng. Mật khẩu chỉ được băm đơn giản, chỉ dùng cho đồ án.
 
-## Bản trên Vercel (lưu vào database Postgres)
-Web trên Vercel (https://davines-doanweb.vercel.app) không có `server.js` và không có file CSV. Thay vào đó `api/db.js` lưu dữ liệu vào database **Neon Postgres** đã nối với project trong tab Storage của Vercel (Vercel tự đưa biến `DATABASE_URL` vào).
+## Bản trên Vercel (chỉ để xem)
+Web trên Vercel (https://davines-doanweb.vercel.app) không có `server.js` nên không ghi được CSV. Web tự chuyển sang lưu dữ liệu vào `localStorage` của **từng trình duyệt**: mỗi người mở link có bộ dữ liệu riêng, đơn hàng và tài khoản tạo trên máy này không xuất hiện ở máy khác.
 
-- Database dùng **đúng 14 bảng** như 14 file CSV (cùng tên bảng, tên cột). Cột danh sách lưu kiểu mảng `text[]`, có khóa chính và khóa ngoại như ERD.
-- Lần đầu mở web, các bảng được tạo tự động. Bảng còn trống thì web tạo dữ liệu mẫu rồi ghi lên database.
-- `store.js` không đổi: vẫn gọi `GET/POST /api/db`. Mỗi lần lưu, mọi bảng được ghi lại trong **một giao dịch**, lỗi giữa chừng thì không mất dữ liệu cũ.
-- Phần đổi dữ liệu web ⇄ 14 bảng nằm ở `api/_dbmap.js`, dùng chung cho cả `server.js` (CSV) và `api/db.js` (Postgres).
-- Xem dữ liệu: Vercel → Storage → database → **Open in Neon** → Tables / SQL Editor.
-- Nếu project chưa nối database, `/api/db` trả lỗi 503 và web tự lưu trong `localStorage` của trình duyệt như trước.
-
-> Vì web gửi cả bộ dữ liệu qua `/api/db`, ai biết địa chỉ này cũng đọc / ghi được toàn bộ dữ liệu. Đủ cho đồ án, nhưng một web bán hàng thật cần API riêng cho từng chức năng và kiểm tra đăng nhập ở phía server.
+- Dùng bản Vercel để xem giao diện và thử chức năng.
+- Muốn lưu dữ liệu vào file CSV (để nộp hoặc mở bằng Excel) thì chạy trên máy bằng `chay-web.bat`.
+- Xóa dữ liệu thử trên bản Vercel: F12 → Console → `Store.reset()` (chỉ ảnh hưởng trình duyệt đang mở).
 
 ## Tài khoản demo
 | Vai trò | Trang | Email | Mật khẩu |
@@ -69,9 +64,6 @@ Mã ưu đãi demo: `DAVINES10` (−100.000 ₫, đơn từ 1.000.000 ₫), `WEL
 | `server.js` | Phục vụ web, đọc và ghi các file CSV |
 | `chay-web.bat` | Nhấp đúp để chạy web |
 | `data/` | Các file CSV |
-| `api/db.js`, `api/_pg.js` | API `/api/db` trên Vercel: đọc / ghi database Postgres (Neon) |
-| `api/_dbmap.js` | Cấu trúc 14 bảng, đổi dữ liệu web ⇄ bảng (dùng chung CSV và Postgres) |
-| `package.json` | Thư viện `@neondatabase/serverless` cho Vercel (chạy trên máy không cần cài) |
 | `assets/js/data.js` | Dữ liệu sản phẩm ban đầu, sinh tự động từ `output/products.json` bằng `tools/build_data.py` |
 | `assets/js/store.js` | Toàn bộ quy tắc nghiệp vụ: giỏ hàng, giá, voucher, phí ship, đơn hàng, tồn kho, báo cáo |
 | `assets/js/ui.js` | Header, footer, thẻ sản phẩm, toast, modal, hóa đơn, kiểm tra form |

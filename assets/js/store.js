@@ -107,9 +107,9 @@
     return path.slice(0, end + 1).map((s, i) => ({ status: s, at: new Date(date.getTime() + i * 26 * 3600000).toISOString() }));
   }
 
-  // Chạy bằng server.js: dữ liệu nằm trong các file CSV (thư mục data). Trên Vercel: api/db.js lưu vào Postgres. Mở bằng Live Server: dùng localStorage như cũ.
+  // Chạy bằng server.js: dữ liệu nằm trong các file CSV (thư mục data). Trên Vercel (không có server.js): dùng localStorage của từng trình duyệt. Mở bằng Live Server: dùng localStorage như cũ.
   let serverMode = false;
-  // Mã phiên bản dữ liệu trên database (chỉ bản Vercel có). Gửi kèm khi lưu: nếu người khác đã lưu trước thì database từ chối
+  // Mã phiên bản dữ liệu của nơi lưu (nếu máy chủ có trả về). Gửi kèm khi lưu: nếu người khác đã lưu trước thì máy chủ từ chối
   // thay vì để bản cũ của trình duyệt này ghi đè mất đơn hàng / tài khoản người khác vừa tạo.
   let rev = null;
   function api(method, body) {
@@ -168,23 +168,42 @@
     if (serverMode && db.version !== SEED_VERSION) return upgradeProducts(db);
     return db;
   }
+  // quiet = true: save() không tự hiện toast lỗi, nơi gọi sẽ hiện thông báo riêng (đăng ký, đăng nhập, hồ sơ, địa chỉ...)
+  let quiet = false, lastFail = null, saveConflict = false;
+  const CONFLICT_MSG = "Dữ liệu vừa được người khác cập nhật nên thao tác chưa được lưu. Hãy thực hiện lại.";
+  function failWarn(msg) { if (!quiet) warn(msg); }
+  // Trả về true khi đã ghi thành công
   function save(db) {
-    if (!serverMode) { localStorage.setItem(DB_KEY, JSON.stringify(db)); return; }
+    saveConflict = false;
+    if (!serverMode) {
+      try { localStorage.setItem(DB_KEY, JSON.stringify(db)); return true; }
+      catch (e) { failWarn("Không lưu được dữ liệu trên trình duyệt. Hãy thử lại."); return false; }
+    }
     const r = api("POST", JSON.stringify(db));
     if (r && r.status === 409 && r.json.db) {
       // Người khác vừa lưu: lấy dữ liệu mới nhất, không ghi đè
       rev = r.json.rev || "";
       DB = migrate(r.json.db);
       window.dispatchEvent(new CustomEvent("store:change"));
-      warn("Dữ liệu vừa được người khác cập nhật nên thao tác chưa được lưu. Trang đã tải dữ liệu mới, bạn hãy thực hiện lại.");
-      return;
+      saveConflict = true;
+      failWarn(CONFLICT_MSG + " Trang đã tải dữ liệu mới.");
+      return false;
     }
     if (r && r.status === 200 && "rev" in r.json) rev = r.json.rev;
-    if (!r || r.status !== 200) warn(location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "Không ghi được dữ liệu xuống CSV. Hãy kiểm tra server.js còn đang chạy không." : "Không lưu được dữ liệu lên database. Hãy thử lại sau.");
-    else if (r.json.pending && r.json.pending.length) warn(`Chưa ghi được ${r.json.pending.join(", ")} vì file đang mở. Hãy đóng file, dữ liệu sẽ tự được ghi.`);
+    if (!r || r.status !== 200) {
+      failWarn(location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "Không ghi được dữ liệu xuống CSV. Hãy kiểm tra server.js còn đang chạy không." : "Không lưu được dữ liệu lên database. Hãy thử lại sau.");
+      return false;
+    }
+    if (r.json.pending && r.json.pending.length) warn(`Chưa ghi được ${r.json.pending.join(", ")} vì file đang mở. Hãy đóng file, dữ liệu sẽ tự được ghi.`);
+    return true;
   }
   let DB = load();
-  function commit() { save(DB); window.dispatchEvent(new CustomEvent("store:change")); }
+  function commit() {
+    const ok = save(DB);
+    if (!ok) lastFail = { conflict: saveConflict };
+    window.dispatchEvent(new CustomEvent("store:change"));
+    return ok;
+  }
   // Quay lại tab này thì lấy dữ liệu mới nhất, tránh ghi đè đơn vừa được tạo ở tab hoặc trình duyệt khác.
   function refresh() {
     const next = latest();
@@ -197,7 +216,35 @@
     return next;
   }
   // Trước mỗi thao tác có lưu dữ liệu: lấy bản mới nhất rồi mới sửa, để không ghi đè thay đổi của người khác.
-  function fresh(fn) { return function (...args) { const next = latest(); if (next) DB = next; return fn.apply(this, args); }; }
+  // Lưu không được (máy chủ / trình duyệt lỗi) thì hoàn tác thay đổi trong bộ nhớ và trả { ok:false, saveFailed:true, error },
+  // nên không còn tài khoản / đơn "ma" chỉ có trong trang mà không có trong nơi lưu.
+  function fresh(fn, failMsg) {
+    return function (...args) {
+      const next = latest(); if (next) DB = next;
+      const snap = JSON.stringify(DB);
+      lastFail = null;
+      const prevQuiet = quiet; quiet = !!failMsg;
+      let r;
+      try { r = fn.apply(this, args); } finally { quiet = prevQuiet; }
+      if (!lastFail) return r;
+      const conflict = lastFail.conflict; lastFail = null;
+      if (!conflict) { DB = JSON.parse(snap); window.dispatchEvent(new CustomEvent("store:change")); }
+      return { ok: false, saveFailed: true, conflict, error: conflict ? CONFLICT_MSG : (failMsg || "Không lưu được dữ liệu, vui lòng thử lại.") };
+    };
+  }
+  // Tra cứu đơn: đọc lại nguồn dữ liệu; nguồn lỗi (503...) thì báo lỗi truy xuất chứ không báo "không tìm thấy đơn"
+  function lookupOrderSafe(code, email) {
+    if (serverMode) {
+      const r = api("GET");
+      if (!r || r.status !== 200 || !r.json || !("db" in r.json)) return { sourceError: true };
+      if (r.json.db) {
+        if ("rev" in r.json) rev = r.json.rev || "";
+        const next = migrate(r.json.db);
+        if (JSON.stringify(next) !== JSON.stringify(DB)) DB = next;
+      }
+    }
+    return { order: lookupOrder(code, email) };
+  }
   window.addEventListener("focus", refresh);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 
@@ -236,9 +283,31 @@
   function cleanDesc(text) { return String(text || "").replace(/\s*[–-]\s*\d+\s*(ml|g)\b,?/i, ",").replace(/,\s*dạng túi/i, "").replace(/,\s*,/g, ",").replace(/^([^,]*),\s*$/, "$1"); }
 
   // ---------- Tài khoản ----------
+  // Phiên thành viên hết hạn sau 30 phút không thao tác (UC08): lần thao tác cuối được ghi ở ACTIVE_KEY
+  const ACTIVE_KEY = "davines_last_active";
+  const IDLE_MS = 30 * 60 * 1000;
+  const EXPIRED = { ok: false, expired: true, error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." };
+  const LOGIN_FAIL = "Chưa thể đăng nhập, vui lòng thử lại.";
+  function sessionExpired() {
+    try {
+      const t = Number(localStorage.getItem(ACTIVE_KEY));
+      return !!localStorage.getItem(SESSION_KEY) && t > 0 && Date.now() - t > IDLE_MS;
+    } catch (e) { return false; }
+  }
+  function endSession() { try { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(ACTIVE_KEY); } catch (e) { /* không xóa được */ } }
+  let lastTouch = 0;
+  function touch() {
+    const now = Date.now();
+    if (now - lastTouch < 1000) return;
+    lastTouch = now;
+    try { if (localStorage.getItem(SESSION_KEY) && !sessionExpired()) localStorage.setItem(ACTIVE_KEY, String(now)); } catch (e) { /* bỏ qua */ }
+  }
+  ["click", "keydown", "input", "change", "submit"].forEach((ev) => document.addEventListener(ev, touch, true));
   function currentUser() {
     const id = localStorage.getItem(SESSION_KEY);
-    return id ? DB.users.find((u) => u.id === id) || null : null;
+    if (!id) return null;
+    if (sessionExpired()) { endSession(); return null; }
+    return DB.users.find((u) => u.id === id) || null;
   }
   // Đăng nhập chung: tài khoản quản trị -> vào trang quản trị, thành viên -> vào trang khách.
   function signIn(email, pass) {
@@ -250,25 +319,33 @@
   function login(email, pass) {
     const u = DB.users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
     if (!u || u.pass !== hash(pass)) return { ok: false, error: "Email hoặc mật khẩu không đúng." };
-    localStorage.setItem(SESSION_KEY, u.id);
+    // Ghi phiên đăng nhập; lỗi (hoặc đọc lại không thấy) thì vẫn là khách và báo lỗi, không báo thành công giả
+    try {
+      localStorage.setItem(SESSION_KEY, u.id);
+      localStorage.setItem(ACTIVE_KEY, String(Date.now()));
+      if (localStorage.getItem(SESSION_KEY) !== u.id) throw new Error("session");
+    } catch (e) { endSession(); return { ok: false, error: LOGIN_FAIL }; }
     // Gộp giỏ khách vào giỏ đã lưu của tài khoản (cộng dồn, không vượt giới hạn) để khách không mất hàng vừa chọn.
-    readGuestCart().forEach((g) => {
-      const f = findVariant(g.sku);
-      const limit = f ? Math.min(RULES.maxPerVariant, Math.max(f.v.stock, 1)) : g.qty;
-      const cur = u.cart.find((i) => i.sku === g.sku);
-      if (cur) cur.qty = Math.min(cur.qty + g.qty, limit); else u.cart.push({ sku: g.sku, qty: Math.min(g.qty, limit) });
-    });
-    sessionStorage.removeItem(GUEST_CART_KEY);
-    commit();
+    const guest = readGuestCart();
+    if (guest.length) {
+      guest.forEach((g) => {
+        const f = findVariant(g.sku);
+        const limit = f ? Math.min(RULES.maxPerVariant, Math.max(f.v.stock, 1)) : g.qty;
+        const cur = u.cart.find((i) => i.sku === g.sku);
+        if (cur) cur.qty = Math.min(cur.qty + g.qty, limit); else u.cart.push({ sku: g.sku, qty: Math.min(g.qty, limit) });
+      });
+      if (!commit()) { endSession(); return { ok: false, error: LOGIN_FAIL }; }
+      sessionStorage.removeItem(GUEST_CART_KEY);
+    } else window.dispatchEvent(new CustomEvent("store:change"));
     return { ok: true, user: u };
   }
-  function logout() { localStorage.removeItem(SESSION_KEY); window.dispatchEvent(new CustomEvent("store:change")); }
+  function logout() { endSession(); window.dispatchEvent(new CustomEvent("store:change")); }
   function register(data) {
     const em = data.email.trim().toLowerCase();
     if (DB.users.some((u) => u.email.toLowerCase() === em) || DB.admins.some((a) => a.email.toLowerCase() === em)) return { ok: false, field: "email", exists: true, error: "Email này đã được đăng ký." };
     const u = { id: "u" + Date.now(), role: "customer", name: data.name.trim(), email: data.email.trim(), phone: data.phone.trim(), birthday: "", gender: "", promo: !!data.promo, pass: hash(data.pass), addresses: [], cart: [] };
     DB.users.push(u);
-    commit();
+    if (!commit()) return { ok: false, error: "Đăng ký chưa thành công, vui lòng thử lại." }; // không lưu được -> không tạo tài khoản
     // BR-TK04: đăng ký xong không tự đăng nhập, khách đăng nhập bằng email và mật khẩu vừa tạo.
     return { ok: true, user: u };
   }
@@ -292,14 +369,16 @@
     commit();
     return { ok: true, email: u.email };
   }
-  function updateProfile(patch) { Object.assign(currentUser(), patch); commit(); }
+  function updateProfile(patch) { const u = currentUser(); if (!u) return EXPIRED; Object.assign(u, patch); commit(); return { ok: true }; }
   function changePassword(oldPass, newPass) {
     const u = currentUser();
+    if (!u) return EXPIRED;
     if (u.pass !== hash(oldPass)) return { ok: false, error: "Mật khẩu hiện tại không đúng." };
     u.pass = hash(newPass); commit(); return { ok: true };
   }
   function saveAddress(addr) {
     const u = currentUser();
+    if (!u) return EXPIRED;
     if (!addr.id && u.addresses.length >= RULES.maxAddresses) return { ok: false, error: `Bạn chỉ lưu được tối đa ${RULES.maxAddresses} địa chỉ. Hãy xóa bớt địa chỉ cũ trước khi thêm mới.` };
     const old = u.addresses.find((a) => a.id === addr.id);
     if (old && old.isDefault) addr.isDefault = true; // luôn giữ đúng 1 địa chỉ mặc định
@@ -311,10 +390,12 @@
   }
   function deleteAddress(id) {
     const u = currentUser();
+    if (!u) return EXPIRED;
     const wasDefault = u.addresses.find((a) => a.id === id)?.isDefault;
     u.addresses = u.addresses.filter((a) => a.id !== id);
     if (wasDefault && u.addresses.length) u.addresses[u.addresses.length - 1].isDefault = true; // BR-DC04: địa chỉ thêm gần nhất thành mặc định
     commit();
+    return { ok: true };
   }
 
   // ---------- Quản trị ----------
@@ -548,8 +629,12 @@
     get db() { return DB; },
     products, product, findVariant,
     today, currentUser, signIn, logout, resetInfo, hasOrdered,
-    login: fresh(login), register: fresh(register), requestReset: fresh(requestReset), resetPassword: fresh(resetPassword),
-    updateProfile: fresh(updateProfile), changePassword: fresh(changePassword), saveAddress: fresh(saveAddress), deleteAddress: fresh(deleteAddress),
+    login: fresh(login, LOGIN_FAIL), register: fresh(register, "Đăng ký chưa thành công, vui lòng thử lại."), requestReset: fresh(requestReset), resetPassword: fresh(resetPassword),
+    updateProfile: fresh(updateProfile, "Lưu không thành công, vui lòng thử lại. Dữ liệu cũ của tài khoản được giữ nguyên."),
+    changePassword: fresh(changePassword, "Đổi mật khẩu không thành công, vui lòng thử lại."),
+    saveAddress: fresh(saveAddress, "Lưu địa chỉ không thành công, vui lòng thử lại. Dữ liệu cũ được giữ nguyên."),
+    deleteAddress: fresh(deleteAddress, "Xóa địa chỉ không thành công, vui lòng thử lại. Dữ liệu cũ được giữ nguyên."),
+    sync: refresh, sessionExpired, lookupOrderSafe,
     currentAdmin, adminLogin, adminLogout,
     cart, cartCount, addToCart: fresh(addToCart), setQty: fresh(setQty), removeFromCart: fresh(removeFromCart),
     checkVoucher, calcTotals, placeOrder: fresh(placeOrder), order, lookupOrder, myOrders, updateOrderStatus: fresh(updateOrderStatus),

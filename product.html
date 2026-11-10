@@ -93,7 +93,13 @@
         const setQty = (n) => { qty = Math.max(1, Math.min(n || 1, maxQty())); input.value = qty; };
         UI.$("#minus").onclick = () => setQty(qty - 1);
         UI.$("#plus").onclick = () => { if (qty >= maxQty()) UI.toast(`Tối đa ${maxQty()} sản phẩm cho dung tích này.`, "error"); setQty(qty + 1); };
-        input.onchange = () => setQty(parseInt(input.value, 10));
+        input.onchange = () => {
+          // Chỉ nhận số nguyên dương không vượt mức tối đa; sai thì báo và giữ số lượng cũ
+          const raw = input.value.trim();
+          if (!/^\d+$/.test(raw) || +raw < 1) { UI.toast("Số lượng phải là số nguyên dương.", "error"); input.value = qty; return; }
+          if (+raw > maxQty()) { UI.toast(`Tối đa ${maxQty()} sản phẩm cho dung tích này.`, "error"); input.value = qty; return; }
+          setQty(+raw);
+        };
         UI.$("#add").onclick = () => {
           const r = Store.addToCart(variant.sku, qty);
           if (!r.ok) return UI.toast(r.error, "error");

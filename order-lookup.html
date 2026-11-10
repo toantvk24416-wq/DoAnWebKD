@@ -40,10 +40,14 @@
       const { V } = UI;
       UI.$("#result").innerHTML = ""; // ẩn kết quả của lần tra cứu trước, tránh hiểu nhầm là đơn của mã mới
       if (!UI.validate(form, { code: [V.required("mã đơn hàng"), (v) => (/^DV-\d{6}-\d{4}$/i.test(v) ? "" : "Mã đơn không đúng định dạng DV-YYMMDD-NNNN.")], email: [V.required("email"), V.email] })) return;
-      const o = Store.lookupOrder(form.code.value, form.email.value);
-      UI.$("#result").innerHTML = o
+      const res = Store.lookupOrderSafe(form.code.value, form.email.value);
+      const o = res.order;
+      UI.$("#result").innerHTML = res.sourceError
+        ? `<div class="empty"><h3>Không thể hoàn tất tra cứu</h3><p class="muted">Hệ thống chưa truy xuất được dữ liệu đơn hàng tại thời điểm này. Vui lòng thử lại sau ít phút.</p><button type="button" class="btn" id="retry">Thử lại</button></div>`
+        : o
         ? `<div class="eyebrow" style="margin-bottom:10px">Kết quả tra cứu</div><div class="box">${UI.orderDetail(o)}</div>`
         : `<div class="empty"><h3>Không tìm thấy đơn hàng</h3><p class="muted">Kiểm tra lại mã đơn và email. Mã đơn và email phải khớp với thông tin lúc đặt hàng.</p></div>`;
+      if (res.sourceError) UI.$("#retry").onclick = () => form.requestSubmit();
     };
     if (form.code.value && UI.qs("code")) form.requestSubmit();
   </script>

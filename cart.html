@@ -83,12 +83,17 @@
       const limitOf = (sku) => Math.min(Store.RULES.maxPerVariant, Store.findVariant(sku).v.stock);
       const change = (sku, n) => {
         const lim = limitOf(sku);
-        if (n > lim) UI.toast(`Tối đa ${lim} sản phẩm cho dung tích này.`, "error");
+        // Vượt mức tối đa: báo và giữ nguyên số lượng trước đó, không cập nhật sai
+        if (n > lim) { UI.toast(`Tối đa ${lim} sản phẩm cho dung tích này.`, "error"); render(); return; }
         Store.setQty(sku, n); render();
       };
       UI.$$("[data-dec]").forEach((b) => (b.onclick = () => change(b.dataset.dec, lines.find((x) => x.sku === b.dataset.dec).qty - 1)));
       UI.$$("[data-inc]").forEach((b) => (b.onclick = () => change(b.dataset.inc, lines.find((x) => x.sku === b.dataset.inc).qty + 1)));
-      UI.$$("[data-qty]").forEach((i) => (i.onchange = () => change(i.dataset.qty, parseInt(i.value, 10) || 1)));
+      UI.$$("[data-qty]").forEach((i) => (i.onchange = () => {
+        // Chỉ nhận số nguyên dương: rỗng, 0, số âm, số thập phân đều báo lỗi và giữ số lượng cũ
+        if (!/^\d+$/.test(i.value.trim()) || +i.value < 1) { UI.toast("Số lượng phải là số nguyên dương.", "error"); render(); return; }
+        change(i.dataset.qty, +i.value);
+      }));
     }
     render();
   </script>
