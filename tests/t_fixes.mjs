@@ -194,8 +194,45 @@ export default async function (t, check) {
   // TC-UC14-04: dung tích 0 ml
   await t.js(`const q=document.querySelector('#pq'); q.value='momo d'; q.oninput(); document.querySelector('[data-e="dau-goi-momo"]').click()`);
   await S(200);
-  await t.js(`const i=document.querySelector('#vt [data-f=size]'); i.value='0 ml'; i.dispatchEvent(new Event('input')); document.querySelector('#ef').requestSubmit()`);
+  const origSize = await t.js(`return Store.product('dau-goi-momo').variants[0].size`);
+  const badSizes = [];
+  for (const v of ["0 ml", "-1ml", "-1 ml", "abc", "250", "0,0 g"]) {
+    await t.js(`document.querySelectorAll('.toast').forEach(e=>e.remove()); const i=document.querySelector('#vt [data-f=size]'); i.value=${JSON.stringify(v)}; i.dispatchEvent(new Event('input')); document.querySelector('#ef').requestSubmit()`);
+    await S(200);
+    const r = await t.js(`return [...document.querySelectorAll('.toast')].map(e=>e.innerText).join('|') + '#' + Store.product('dau-goi-momo').variants[0].size`);
+    if (!(r.includes("Dung tích phải là số lớn hơn 0") && r.endsWith("#" + origSize))) badSizes.push(v + " => " + r);
+  }
+  check("Dung tích 0 ml, -1ml, chữ, thiếu đơn vị đều bị chặn và không lưu", badSizes.length === 0, badSizes.join(" ; "));
+
+  // ================= TC-UC07-03: gửi lại liên kết đặt lại mật khẩu (60 giây, 5 lần mỗi giờ)
+  await t.go(B + "index.html");
+  const rl = await t.js(`
+    const real = Date.now.bind(Date); let off = 0; Date.now = () => real() + off;
+    const em = 'loi@test.vn', out = {};
+    const r1 = Store.requestReset(em); out.first = r1.ok;
+    const r2 = Store.requestReset(em); out.tooSoon = !r2.ok && r2.tooSoon && r2.wait > 0 && r2.wait <= 60 && /giây/.test(r2.error);
+    const tokens = [r1.token];
+    for (let i = 1; i < 5; i++) { off = i * 61000; const r = Store.requestReset(em); out['n' + (i + 1)] = r.ok; if (r.ok) tokens.push(r.token); }
+    off = 5 * 61000; const r6 = Store.requestReset(em); out.sixth = !r6.ok && r6.limited && /tối đa 5 lần/.test(r6.error);
+    out.oldDead = Store.resetInfo(tokens[0]) === null;
+    out.latestAlive = !!Store.resetInfo(tokens[4]);
+    off = 3600000 + 61000; const r7 = Store.requestReset(em); out.afterHour = r7.ok;
+    const use = Store.resetPassword(r7.token, 'Matkhau456'); out.used = use.ok;
+    out.reuse = Store.resetPassword(r7.token, 'Matkhau789').ok === false;
+    Date.now = real;
+    return JSON.stringify(out)`);
+  const rlo = JSON.parse(rl);
+  check("Gửi lại liên kết: lần 1 được; gửi lại trước 60 giây bị từ chối kèm thời điểm được gửi lại", rlo.first && rlo.tooSoon, rl);
+  check("Cách nhau từ 60 giây: lần 2 đến 5 được; lần 6 trong cùng giờ bị chặn", rlo.n2 && rlo.n3 && rlo.n4 && rlo.n5 && rlo.sixth, rl);
+  check("Liên kết cũ hết hiệu lực, liên kết mới nhất dùng được; sau 1 giờ gửi lại được", rlo.oldDead && rlo.latestAlive && rlo.afterHour, rl);
+  check("Liên kết đặt lại chỉ dùng được một lần", rlo.used && rlo.reuse, rl);
+  // trên giao diện: nút Gửi lại liên kết báo thời điểm được gửi lại
+  await t.js(`Store.adminLogout()`);
+  await t.go(B + "login.html");
+  await t.js(`document.querySelector('#forgot').click()`);
+  await S(150);
+  await t.js(`const ff=document.querySelector('#ff'); ff.email.value='an.nguyen@email.com'; ff.requestSubmit()`);
   await S(250);
-  const sz = await t.js(`return [...document.querySelectorAll('.toast')].map(e=>e.innerText).join('|') + '#' + Store.product('dau-goi-momo').variants[0].size`);
-  check("Dung tích 0 ml bị chặn, không lưu", sz.includes("Dung tích phải có số lớn hơn 0") && !sz.endsWith("#0 ml"), sz);
+  const ui = await t.js(`const b=document.querySelector('#resend'); if(!b) return 'không có nút'; b.click(); return document.querySelector('#resend-msg').innerText`);
+  check("Giao diện: bấm Gửi lại liên kết khi chưa đủ thời gian thì báo chờ", /giây|tối đa 5 lần/.test(ui), ui);
 }

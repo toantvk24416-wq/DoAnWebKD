@@ -81,7 +81,7 @@ export default async function (t, check) {
   await t.go(B + "login.html");
   const reset = await t.js(`document.querySelector('#forgot').click(); await new Promise(r=>setTimeout(r,100)); const f=document.querySelector('.modal form'); f.email.value='moi2@test.vn'; f.requestSubmit(); await new Promise(r=>setTimeout(r,150)); return document.querySelector('.modal')?.innerText || document.body.innerText.slice(0,200)`);
   check("Quên mật khẩu, email đã đăng ký: có liên kết đặt lại (mô phỏng)", /liên kết|đặt lại/i.test(reset), reset.slice(0, 140).replace(/\n+/g, " | "));
-  const tk = await t.js(`const r=Store.requestReset('moi2@test.vn'); const ok=Store.resetPassword(r.token,'Matkhau999'); return ok.ok && Store.login('moi2@test.vn','Matkhau999').ok`);
+  const tk = await t.js(`const real=Date.now.bind(Date); Date.now=()=>real()+61000; const r=Store.requestReset('moi2@test.vn'); Date.now=real; const ok=Store.resetPassword(r.token,'Matkhau999'); /* sau 60 giây mới được gửi lại */ return ok.ok && Store.login('moi2@test.vn','Matkhau999').ok`);
   check("Đặt lại mật khẩu rồi đăng nhập được", tk === true);
   // --- FB UC08
   await t.go(B + "account.html");

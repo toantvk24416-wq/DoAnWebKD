@@ -101,6 +101,19 @@
     }
 
     // UC07: chỉ gửi liên kết khi email đã đăng ký; chưa đăng ký thì báo "Email chưa được đăng ký".
+    // Web tĩnh không có máy chủ gửi mail -> hiển thị email trong "hộp thư mô phỏng" để thử luồng đặt lại mật khẩu.
+    function sentView(r) {
+      const link = `login.html?reset=${r.token}`;
+      const sm = UI.modal(`<h3>Đã gửi liên kết đặt lại mật khẩu</h3><p class="muted small">Liên kết đã được gửi tới <b>${UI.esc(r.email)}</b>, có hiệu lực trong 30 phút và chỉ dùng được một lần.</p>
+        <div class="box small"><div class="eyebrow">Hộp thư (mô phỏng)</div><p><b>Davines Việt Nam – Đặt lại mật khẩu</b></p><p>Bấm vào liên kết sau để đặt mật khẩu mới:</p><a class="link" href="${link}">Đặt lại mật khẩu</a></div>
+        <div class="err" id="resend-msg" role="alert" style="margin-top:10px"></div>
+        <div class="modal-actions"><button class="btn btn-outline" id="resend" type="button">Gửi lại liên kết</button><button class="btn btn-outline" data-close>Đóng</button></div>`);
+      UI.$("#resend", sm.el).onclick = () => {
+        const r2 = Store.requestReset(r.email);
+        if (!r2.ok) { UI.$("#resend-msg", sm.el).textContent = r2.error; return; }
+        sm.close(); sentView(r2);
+      };
+    }
     function forgot(email) {
       const m = UI.modal(`<h3>Quên mật khẩu</h3><p class="muted small">Nhập email tài khoản, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.</p><form id="ff" novalidate><div class="field"><input class="input" name="email" type="email" placeholder="Email" value="${UI.esc(email || "")}"></div><div class="modal-actions"><button class="btn">Gửi liên kết</button><button type="button" class="btn btn-outline" data-close>Đóng</button></div></form>`);
       UI.$("#ff", m.el).onsubmit = (e) => {
@@ -108,13 +121,12 @@
         const ff = e.target;
         if (!UI.validate(ff, { email: [V.required("email"), V.email] })) return;
         const r = Store.requestReset(ff.email.value);
-        if (!r.ok) return setErr(ff.email, `${UI.esc(r.error)} <button type="button" class="link small" id="ff-reg">Đăng ký tài khoản</button>`), (UI.$("#ff-reg", m.el).onclick = () => { m.close(); registerView(ff.email.value.trim()); });
+        if (!r.ok) {
+          if (!r.notRegistered) return setErr(ff.email, UI.esc(r.error)); // quá nhanh hoặc quá 5 lần/giờ: báo thời điểm được gửi lại
+          return setErr(ff.email, `${UI.esc(r.error)} <button type="button" class="link small" id="ff-reg">Đăng ký tài khoản</button>`), (UI.$("#ff-reg", m.el).onclick = () => { m.close(); registerView(ff.email.value.trim()); });
+        }
         m.close();
-        // Web tĩnh không có máy chủ gửi mail -> hiển thị email trong "hộp thư mô phỏng" để thử luồng đặt lại mật khẩu.
-        const link = `login.html?reset=${r.token}`;
-        UI.modal(`<h3>Đã gửi liên kết đặt lại mật khẩu</h3><p class="muted small">Liên kết đã được gửi tới <b>${UI.esc(r.email)}</b>, có hiệu lực trong 30 phút.</p>
-          <div class="box small"><div class="eyebrow">Hộp thư (mô phỏng)</div><p><b>Davines Việt Nam – Đặt lại mật khẩu</b></p><p>Bấm vào liên kết sau để đặt mật khẩu mới:</p><a class="link" href="${link}">Đặt lại mật khẩu</a></div>
-          <div class="modal-actions"><button class="btn btn-outline" data-close>Đóng</button></div>`);
+        sentView(r);
       };
     }
 

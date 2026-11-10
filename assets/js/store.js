@@ -351,12 +351,28 @@
   }
   // UC07 / BR-TK07: chỉ gửi liên kết khi email đã đăng ký. Bản demo không có máy chủ gửi mail
   // nên liên kết được tạo và trả về để trang hiển thị trong "hộp thư mô phỏng".
+  // Gửi lại liên kết đặt lại mật khẩu (UC07): cách nhau tối thiểu 60 giây, tối đa 5 lần mỗi giờ; liên kết mới có hiệu lực 30 phút, dùng một lần
+  const RESET_GAP = 60 * 1000, RESET_MAX = 5, RESET_WINDOW = 60 * 60 * 1000;
+  const clock = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
   function requestReset(email) {
     const u = DB.users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
-    if (!u) return { ok: false, error: "Email chưa được đăng ký." };
-    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    DB.resets = (DB.resets || []).filter((r) => r.userId !== u.id && r.exp > Date.now());
-    DB.resets.push({ token, userId: u.id, exp: Date.now() + 30 * 60000 });
+    if (!u) return { ok: false, notRegistered: true, error: "Email chưa được đăng ký." };
+    const now = Date.now();
+    const mine = (DB.resets || []).filter((r) => r.userId === u.id && now - (r.at || 0) < RESET_WINDOW).sort((a, b) => a.at - b.at);
+    const last = mine[mine.length - 1];
+    if (last && now - last.at < RESET_GAP) {
+      const at = last.at + RESET_GAP, secs = Math.ceil((at - now) / 1000);
+      return { ok: false, tooSoon: true, wait: secs, retryAt: at, error: `Bạn vừa yêu cầu liên kết. Có thể gửi lại sau ${secs} giây (lúc ${clock(at)}).` };
+    }
+    if (mine.length >= RESET_MAX) {
+      const at = mine[0].at + RESET_WINDOW;
+      return { ok: false, limited: true, retryAt: at, error: `Bạn đã yêu cầu tối đa ${RESET_MAX} lần trong 1 giờ. Vui lòng thử lại sau ${clock(at)}.` };
+    }
+    const token = Math.random().toString(36).slice(2) + now.toString(36);
+    // liên kết cũ hết hiệu lực nhưng giữ bản ghi để đếm số lần yêu cầu trong giờ
+    (DB.resets || []).forEach((r) => { if (r.userId === u.id) r.exp = 0; });
+    DB.resets = (DB.resets || []).filter((r) => now - (r.at || 0) < RESET_WINDOW || r.exp > now);
+    DB.resets.push({ token, userId: u.id, exp: now + 30 * 60000, at: now });
     commit();
     return { ok: true, token, email: u.email };
   }
@@ -365,7 +381,7 @@
     const u = resetInfo(token);
     if (!u) return { ok: false, error: "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn." };
     u.pass = hash(newPass);
-    DB.resets = DB.resets.filter((x) => x.token !== token);
+    DB.resets.forEach((x) => { if (x.token === token) x.exp = 0; }); // dùng một lần; giữ bản ghi để đếm số lần yêu cầu
     commit();
     return { ok: true, email: u.email };
   }

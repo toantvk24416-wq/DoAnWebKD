@@ -415,9 +415,10 @@
         const bad = p.variants.find((v) => !v.sku || !v.size || !(v.price >= 1000));
         if (p.variants.some((v) => !(Number.isInteger(+v.sale) && +v.sale >= 0 && +v.sale <= 50))) return UI.toast("Mức giảm của mỗi dung tích phải từ 0 đến 50%.", "error");
         if (bad) return UI.toast("Mỗi dung tích cần có SKU, tên dung tích và giá từ 1.000 ₫.", "error");
-        // dung tích phải có số lớn hơn 0 (vd 250 ml); 0 ml hoặc chữ không có số bị chặn
-        const sizeOk = (sz) => { const n = String(sz).match(/\d+(?:[.,]\d+)?/g) || []; return n.length > 0 && n.every((x) => parseFloat(x.replace(",", ".")) > 0); };
-        if (p.variants.some((v) => !sizeOk(v.size))) return UI.toast("Dung tích phải có số lớn hơn 0, ví dụ 250 ml.", "error");
+        // dung tích phải đúng dạng "số dương + đơn vị" (vd 250 ml, 100 g, 100 ml + 60 ml); 0 ml, -1ml, chữ không có số đều bị chặn
+        const part = "(?:\\d+(?:[.,]\\d+)?)\\s*(?:ml|g|kg|l)";
+        const sizeOk = (sz) => new RegExp("^\\s*" + part + "(?:\\s*\\+\\s*" + part + ")*\\s*$", "i").test(String(sz)) && (String(sz).match(/\d+(?:[.,]\d+)?/g) || []).every((x) => parseFloat(x.replace(",", ".")) > 0);
+        if (p.variants.some((v) => !sizeOk(v.size))) return UI.toast("Dung tích phải là số lớn hơn 0 kèm đơn vị, ví dụ 250 ml hoặc 100 g.", "error");
         if (new Set(skus).size !== skus.length || p.variants.some((v) => { const f2 = Store.findVariant(v.sku); return f2 && f2.p.id !== p.id; })) return UI.toast("SKU bị trùng với sản phẩm khác.", "error");
         Object.assign(p, { name: f.name.value.trim(), kind: f.kind.value.trim(), collection: f.collection.value.trim(), short: f.short.value.trim(), description: f.description.value.trim() || f.short.value.trim(), needs: $$("[name=needs]:checked", f).map((x) => x.value), hair: $$("[name=hair]:checked", f).map((x) => x.value) });
         if (isNew) { p.id = (p.kind + "-" + p.name).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36); p.line = p.name.split(" ")[0].toUpperCase(); p.createdAt = Store.today(); }

@@ -27,7 +27,7 @@ const SCHEMA = {
   vouchers: { code: "s", type: "s", value: "n", minOrder: "n", maxDiscount: "n", start: "s", end: "s", limit: "n", used: "n", active: "b", firstOrderOnly: "b", desc: "s" },
   stock_log: { at: "s", sku: "s", name: "s", change: "n", after: "n", reason: "s" },
   order_sequence: { day: "s", lastNumber: "n" },
-  password_resets: { token: "s", userId: "s", exp: "n" },
+  password_resets: { token: "s", userId: "s", exp: "n", at: "n" },
   meta: { key: "s", value: "s" },
 };
 
